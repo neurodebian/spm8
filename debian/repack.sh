@@ -3,9 +3,6 @@
 # tar.gz archive.
 #
 # The script also determines a version of the respective SPM source snapshot.
-# This is done by using the latest modification date of any file in the tarball.
-# Reason: SPM doesn't have any versioning (other than the major version) which
-# makes it impossible to judge which version one is using.
 #
 #
 # Usage:
@@ -48,8 +45,8 @@ echo -n "Determine SPM version: "
 # Upstream does not have its own version string ...
 # therefore we are going to use the latest modification date of any file in the
 # sources
-UPSTREAM_VERSION="$SPM_MAJORVERSION.$(LC_ALL=C find . -type f -exec ls -og --time-style=long-iso {} \; |sort --key 4 |tail -n1 | cut -d ' ' -f 4,4 | tr -d "-")"
-ORIG_VERSION="$UPSTREAM_VERSION.1~dfsg.1"
+UPSTREAM_VERSION="$SPM_MAJORVERSION.$(grep '% Version' $SUBDIR/Contents.m | cut -d ' ' -f 3,3)"
+ORIG_VERSION="$UPSTREAM_VERSION~dfsg.1"
 
 echo "Determined version: $UPSTREAM_VERSION"
 echo "Debian orig version: $ORIG_VERSION"
