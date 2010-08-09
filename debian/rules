@@ -10,16 +10,17 @@ include /usr/share/octave/debian/defs.make
 override_dh_auto_configure:
 override_dh_auto_build:
 	# build manual
-	cd man && pdflatex manual && bibtex manual && pdflatex manual \
-		&& pdflatex manual
+	$(MAKE) -C man
+	# build octave extensions -- set proper extension to prevent rebuilding
+	$(MAKE) -C src SUF=mex MEXBIN="mkoctfile --mex" MEXOPTS=""
 
 override_dh_auto_install:
 	# create a link in octaves PATH to SPM
-	-mkdir -p debian/spm8/$(MDIR)
-	ln -sf /usr/share/spm8 debian/spm8/$(MDIR)/spm8
+	-mkdir -p debian/spm8-common/$(MDIR)
+	ln -sf /usr/share/spm8 debian/spm8-common/$(MDIR)/spm8
 	# all files in root
 	find . -maxdepth 1 -type f \
-		-exec install -m 644 -t debian/spm8/usr/share/spm8 \{\} \;
+		-exec install -m 644 -t debian/spm8-common/usr/share/spm8 \{\} \;
 	# and all directories, but a few that are shipped in other packages
 	find . -maxdepth 1 -mindepth 1 -type d \
 		! -name debian \
@@ -29,13 +30,21 @@ override_dh_auto_install:
 		! -name apriori \
 		! -name src \
 		! -name EEGtemplates \
-		! -name .git \
+		! -name .git ! -name .pc \
 		! -name canonical \
-		-exec cp -r -t debian/spm8/usr/share/spm8 \{\} \;
+		-exec cp -r -t debian/spm8-common/usr/share/spm8 \{\} \;
 	# cleanup overshoot
-	find debian/spm8/usr/share/spm8 -type f -name '*.c' -delete
-	find debian/spm8/usr/share/spm8 -type f -name '*.h' -delete
-	find debian/spm8/usr/share/spm8 -type f -name '*.nii' -delete
+	find debian/spm8-common/usr/share/spm8 -type f -name '*.c' -delete
+	find debian/spm8-common/usr/share/spm8 -type f -name '*.h' -delete
+	find debian/spm8-common/usr/share/spm8 -type f -name 'spm_LICENCE.man' -delete
+	find debian/spm8-common/usr/share/spm8 -type f -name 'Makefile' -delete
+	# generate file links setup
+	cp debian/spm8-data.links.in debian/spm8-data.links
+	# mex files from /usr/lib/spm8 -> /usr/share/spm8
+	-rm -f debian/spm8-octave.links
+	for f in $$(find . -type f -name '*.mex'); do \
+		echo /usr/lib/spm8/$$(basename $$f) /usr/share/spm8/$$(basename $$f) >> debian/spm8-octave.links ; \
+	done
 
 override_dh_auto_test:
 
@@ -43,8 +52,25 @@ override_dh_clean:
 	# clean after latex
 	find man -name '*.aux' -delete
 	find man -name 'manual.*' ! -name manual.tex -delete
+	# octave stuff
+	find src -name '*.a' -delete
+	find src -name '*.o' -delete
+	find src -name '*.mex' -delete
+	rm -f debian/spm8-common.links
+	rm -f debian/spm8-octave.links
 	dh_clean
 
 override_dh_compress:
 	# manual comes in a separate doc package -- no need to keep compressed
 	dh_compress -X.pdf
+
+# just to run octave-depends
+override_dh_fixperms:
+	dh_fixperms
+	octave-depends
+
+override_dh_shlibdeps:
+	# octave will take care of proper deps for extensions -- no need to scan
+	# them and warn all the time
+	#dh_shlibdeps -l$(shell octave-config --print OCTLIBDIR)
+	dh_shlibdeps

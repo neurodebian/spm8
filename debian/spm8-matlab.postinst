@@ -1,0 +1,32 @@
+#!/bin/sh
+set -e
+
+# Build the MEX files
+
+logfile=/tmp/spm8-matlab_mexbuild_$(date -u +%s).log
+
+cd /usr/src/spm8-matlab
+
+#if [ -z "$MATLAB_USER" ]
+#then
+
+echo "Building MEX extensions (logfile at $logfile)"
+make 2>&1 > $logfile
+# remove junk
+rm *.o *.a
+# install extensions
+mv -t /usr/lib/spm8 *.mex?*
+# install symlinks to /usr/share/spm8
+for m in /usr/lib/spm8/*.mex?*; do
+	mbase=$(basename $m)
+	[ ! -L /usr/share/spm8/$mbase ] && ln -s ../../lib/spm8/$mbase /usr/share/spm8/$mbase
+done
+
+#else
+#    db_go || true
+#    chown -R $MATLAB_USER /usr/lib/dynare/mex/matlab
+#    sudo -H -u $MATLAB_USER $MATLAB -nodisplay -r build_matlab
+#    chown -R root:root /usr/lib/dynare/mex/matlab
+#fi
+
+#DEBHELPER#

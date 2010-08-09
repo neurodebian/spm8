@@ -1,0 +1,15 @@
+#!/bin/sh
+set -e
+
+for m in /usr/lib/spm8/*.mex?*; do
+	mbase=$(basename $m)
+	# remove symlink
+	rm /usr/share/spm8/$mbase
+	# and actual file
+	rm /usr/lib/spm8/$mbase
+done
+
+# try removing the libdir, but don't fail if not empty
+rmdir --ignore-fail-on-non-empty /usr/lib/spm8
+
+#DEBHELPER#

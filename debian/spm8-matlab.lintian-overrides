@@ -1,0 +1,3 @@
+# This is the target directory where the compiled MEX files get installed
+# by the postinst script.
+spm8-matlab: package-contains-empty-directory usr/lib/spm8/

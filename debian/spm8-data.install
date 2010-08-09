@@ -3,4 +3,3 @@ tpm usr/share/data/spm8
 apriori usr/share/data/spm8
 canonical usr/share/data/spm8
 EEGtemplates usr/share/data/spm8
-toolbox/Seg/*.nii usr/share/data/spm8/Seg
