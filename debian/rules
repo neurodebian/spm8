@@ -38,6 +38,7 @@ override_dh_auto_install:
 	find debian/spm8-common/usr/share/spm8 -type f -name '*.h' -delete
 	find debian/spm8-common/usr/share/spm8 -type f -name 'spm_LICENCE.man' -delete
 	find debian/spm8-common/usr/share/spm8 -type f -name 'Makefile' -delete
+	find debian/spm8-common/usr/share/spm8 -name '.git*' -delete
 	# generate file links setup
 	cp debian/spm8-data.links.in debian/spm8-data.links
 	# mex files from /usr/lib/spm8 -> /usr/share/spm8
