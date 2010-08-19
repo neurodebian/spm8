@@ -63,7 +63,7 @@ if nargin == 1
         % assume input is a struct to be converted back into a class
         % return with error if this does not work
         if numel(fieldnames(varargin{1})) == numel(fn)+2 && ...
-                all(isfield(varargin{1}, [fn(:)' {'cfg_item' 'cfg_intree'}]))
+                all(isfield(varargin{1}, [fn(:)' {'cfg_item', 'cfg_intree'}]))
             gitem = varargin{1}.cfg_item;
             sitem = rmfield(varargin{1},{'cfg_item','cfg_intree'});
             item  = class(sitem, myclass, gitem, cfg_intree);

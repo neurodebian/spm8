@@ -24,11 +24,15 @@ cfg_defaults.cfg_ui.lfont.FontSize   = 12;
 cfg_defaults.cfg_ui.lfont.FontUnits  = 'points';
 cfg_defaults.cfg_ui.lfont.FontWeight = 'normal';
 % bfont: used for buttons
+try
 cfg_defaults.cfg_ui.bfont.FontAngle  = get(0, 'factoryUicontrolFontAngle');
 cfg_defaults.cfg_ui.bfont.FontName   = get(0,'factoryUicontrolFontName');
 cfg_defaults.cfg_ui.bfont.FontSize   = get(0, 'factoryUicontrolFontSize');
 cfg_defaults.cfg_ui.bfont.FontUnits  = get(0, 'factoryUicontrolFontUnits');
 cfg_defaults.cfg_ui.bfont.FontWeight = get(0, 'factoryUicontrolFontWeight');
+catch
+  warning('No GUI found :)');
+end
 % Toggle ExpertEdit mode. Value can be 'on' or 'off'
 cfg_defaults.cfg_ui.ExpertEdit = 'off';
 

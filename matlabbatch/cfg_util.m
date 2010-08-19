@@ -1001,7 +1001,7 @@ function varargout = local_cd(pth)
 % Try to work around some unexpected behaviour of MATLAB's cd command
 if ~isempty(pth)
     if ischar(pth)
-        wd = cd(pth);
+        wd = cd2(pth);
     else
         cfg_message('matlabbatch:usage','CD: path must be a string.');
     end
@@ -1244,10 +1244,14 @@ end
 %-----------------------------------------------------------------------
 function local_initapps
 % add application data
-if isdeployed
+_isdeployed = 0;
+try
+  _isdeployed = isdeployed;
+end
+if _isdeployed
     cfg_mlbatch_appcfg_master;
 else
-    appcfgs = which('cfg_mlbatch_appcfg','-all');
+    appcfgs = which2('cfg_mlbatch_appcfg','-all');
     cwd = pwd;
     dirs = cell(size(appcfgs));
     for k = 1:numel(appcfgs)

@@ -75,6 +75,7 @@ type.num = [1 3];
 type.help = {'Type the coordinates corresponding to the fiducial in the structural image.'};
 
 fid = fopen(fullfile(spm('dir'), 'EEGtemplates', 'fiducials.sfp') ,'rt');
+fullfile(spm('dir'), 'EEGtemplates', 'fiducials.sfp')
 fidtable =textscan(fid ,'%s %f %f %f');
 fclose(fid);
 
