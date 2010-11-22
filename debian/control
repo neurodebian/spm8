@@ -66,7 +66,8 @@ Description: analysis of brain imaging data sequences for Octave
  and MEG data.
  .
  This package provides SPM to be used with Octave. Note that only a very small
- subset of SPM8 functionality works with Octave right now.
+ subset of SPM8 functionality works with Octave right now. This package is
+ primarily provided to facilitate porting SPM to Octave.
 
 
 Package: spm8-matlab
