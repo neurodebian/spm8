@@ -3,17 +3,17 @@ set -e
 
 # Build the MEX files
 
-logfile=/tmp/spm8-matlab_mexbuild_$(date -u +%s).log
+logfile=$(mktemp --tmpdir spm8-matlab_mexbuild_$(date -u +%s).XXXX.log)
 
-cd /usr/src/spm8-matlab
+cd /usr/src/matlab/spm8
 
 #if [ -z "$MATLAB_USER" ]
 #then
 
 echo "Building MEX extensions (logfile at $logfile)"
-make 2>&1 > $logfile
+make MEXBIN="matlab-mex" 2>&1 > $logfile
 # remove junk
-rm *.o *.a
+rm -f *.o *.a
 # install extensions
 mv -t /usr/lib/spm8 *.mex?*
 # install symlinks to /usr/share/spm8

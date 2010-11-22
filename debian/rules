@@ -2,6 +2,8 @@
 
 # get octave paths (have to build-depend on octave-headers)
 include /usr/share/octave/debian/defs.make
+# same for Matlab
+include /usr/share/matlab/debian/defs.make
 
 # one ring to rule them all ...
 %:
@@ -26,6 +28,7 @@ override_dh_auto_install:
 		! -name debian \
 		! -name templates \
 		! -name tpm \
+		! -name rend \
 		! -name man \
 		! -name apriori \
 		! -name src \
@@ -39,8 +42,12 @@ override_dh_auto_install:
 	find debian/spm8-common/usr/share/spm8 -type f -name 'spm_LICENCE.man' -delete
 	find debian/spm8-common/usr/share/spm8 -type f -name 'Makefile' -delete
 	find debian/spm8-common/usr/share/spm8 -name '.git*' -delete
+	find debian/spm8-common/usr/share/spm8 -name '*.nii' -delete
 	# generate file links setup
 	cp debian/spm8-data.links.in debian/spm8-data.links
+	cp debian/spm8-matlab.links.in debian/spm8-matlab.links
+	# put spm8 in Matlab's M-path
+	echo "/usr/share/spm8 $(MATLAB_MDIR)/spm8" >> debian/spm8-matlab.links
 	# mex files from /usr/lib/spm8 -> /usr/share/spm8
 	-rm -f debian/spm8-octave.links
 	for f in $$(find . -type f -name '*.mex'); do \
@@ -48,6 +55,12 @@ override_dh_auto_install:
 	done
 
 override_dh_auto_test:
+
+override_dh_install:
+	dh_install
+	# fixing bits
+	# non-executable scripts
+	chmod +x debian/spm8-matlab/usr/src/matlab/spm8/Makefile
 
 override_dh_clean:
 	# clean after latex
@@ -59,6 +72,7 @@ override_dh_clean:
 	find src -name '*.mex' -delete
 	rm -f debian/spm8-common.links
 	rm -f debian/spm8-octave.links
+	rm -f debian/spm8-matlab.links
 	dh_clean
 
 override_dh_compress:

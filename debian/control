@@ -73,7 +73,7 @@ Package: spm8-matlab
 Section: contrib/science
 Architecture: all
 Provides: spm8, spm
-Depends: matlab, spm8-common (= ${source:Version}), ${misc:Depends}
+Depends: matlab, spm8-common (= ${source:Version}), ${misc:Depends}, make
 Description: analysis of brain imaging data sequences for Matlab
  Statistical Parametric Mapping (SPM) refers to the construction and assessment
  of spatially extended statistical processes used to test hypotheses about

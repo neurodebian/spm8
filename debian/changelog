@@ -1,5 +1,5 @@
 spm8 (8.4010~dfsg.1-1) unstable; urgency=low
 
-  * Initial release.
+  * Initial release (Closes: #592390).
 
  -- Michael Hanke <michael.hanke@gmail.com>  Tue, 03 Aug 2010 21:04:00 -0400

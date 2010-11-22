@@ -1,5 +1,7 @@
+/usr/share/data/spm8/rend /usr/share/spm8/rend
 /usr/share/data/spm8/templates /usr/share/spm8/templates
 /usr/share/data/spm8/tpm /usr/share/spm8/tpm
 /usr/share/data/spm8/apriori /usr/share/spm8/apriori
 /usr/share/data/spm8/canonical /usr/share/spm8/canonical
 /usr/share/data/spm8/EEGtemplates /usr/share/spm8/EEGtemplates
+/usr/share/data/spm8/TPM.nii /usr/share/spm8/toolbox/Seg/TPM.nii
