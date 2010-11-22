@@ -1,32 +1,29 @@
 #!/bin/sh
 set -e
 
-# Build the MEX files
+case "$1" in
+    configure)
+        # Build the MEX files
+        debian-matlab-mexbuilder spm8 'make MEXBIN="matlab-mex"'
+        # remove junk
+        cd /usr/src/matlab/spm8
+        rm -f *.o *.a
+        # install extensions
+        mv -t /usr/lib/spm8 *.mex?*
+        # install symlinks to /usr/share/spm8
+        for m in /usr/lib/spm8/*.mex?*; do
+        	mbase=$(basename $m)
+        	[ ! -L /usr/share/spm8/$mbase ] && ln -s ../../lib/spm8/$mbase /usr/share/spm8/$mbase
+        done
+    ;;
 
-logfile=$(mktemp --tmpdir spm8-matlab_mexbuild_$(date -u +%s).XXXX.log)
+    abort-upgrade|abort-remove|abort-deconfigure)
+    ;;
 
-cd /usr/src/matlab/spm8
-
-#if [ -z "$MATLAB_USER" ]
-#then
-
-echo "Building MEX extensions (logfile at $logfile)"
-make MEXBIN="matlab-mex" 2>&1 > $logfile
-# remove junk
-rm -f *.o *.a
-# install extensions
-mv -t /usr/lib/spm8 *.mex?*
-# install symlinks to /usr/share/spm8
-for m in /usr/lib/spm8/*.mex?*; do
-	mbase=$(basename $m)
-	[ ! -L /usr/share/spm8/$mbase ] && ln -s ../../lib/spm8/$mbase /usr/share/spm8/$mbase
-done
-
-#else
-#    db_go || true
-#    chown -R $MATLAB_USER /usr/lib/dynare/mex/matlab
-#    sudo -H -u $MATLAB_USER $MATLAB -nodisplay -r build_matlab
-#    chown -R root:root /usr/lib/dynare/mex/matlab
-#fi
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
 
 #DEBHELPER#
