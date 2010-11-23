@@ -1,0 +1,28 @@
+Description: Introduce DESTDIR variable in Makefile
+ This should make the installation more flexible by being able to reconfigure
+ the install location without having to edit the Makefile. The default behavior
+ should be unchanged.
+Author: Michael Hanke <michael.hanke@gmail.com?>
+--- a/src/Makefile
++++ b/src/Makefile
+@@ -72,8 +72,8 @@
+ archive: spm_vol_utils.$(SUF).a
+ 
+ install: verb.install $(SPMMEX)
+-	$(COPY) $(SPMMEX) ..
+-	$(MOVE) ../file2mat.$(SUF) ../mat2file.$(SUF) ../@file_array/private
++	$(COPY) $(SPMMEX) $(DESTDIR)
++	$(MOVE) $(DESTDIR)/file2mat.$(SUF) $(DESTDIR)/mat2file.$(SUF) $(DESTDIR)/@file_array/private
+ 
+ toolbox toolbox-all toolbox-clean toolbox-distclean toolbox-install toolbox-tarball:
+ 	@@for p in $(SUBDIRS); do \
+--- a/src/Makefile.var
++++ b/src/Makefile.var
+@@ -45,6 +45,7 @@
+ MOVE           = mv -f
+ TAR            = tar
+ ZIP            = gzip -f
++DESTDIR        = ..
+ 
+ ifndef SUF
+   ifndef PLATFORM

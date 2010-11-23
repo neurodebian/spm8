@@ -3,18 +3,9 @@ set -e
 
 case "$1" in
     configure)
-        # Build the MEX files
-        debian-matlab-mexbuilder spm8 'make MEXBIN="matlab-mex"'
-        # remove junk
-        cd /usr/src/matlab/spm8
-        rm -f *.o *.a
-        # install extensions
-        mv -t /usr/lib/spm8 *.mex?*
-        # install symlinks to /usr/share/spm8
-        for m in /usr/lib/spm8/*.mex?*; do
-        	mbase=$(basename $m)
-        	[ ! -L /usr/share/spm8/$mbase ] && ln -s ../../lib/spm8/$mbase /usr/share/spm8/$mbase
-        done
+        debian-matlab-mexhelper spm8 'make MEXBIN="matlab-mex"' \
+            --clean-cmd "make distclean" \
+            --install-cmd "make install DESTDIR=/usr/share/spm8"
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
