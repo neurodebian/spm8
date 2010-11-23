@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
 # get octave paths (have to build-depend on octave-headers)
-include /usr/share/octave/debian/defs.make
+#include /usr/share/octave/debian/defs.make
 # same for Matlab
 include /usr/share/matlab/debian/defs.make
 
@@ -14,7 +14,7 @@ override_dh_auto_build:
 	# build manual
 	$(MAKE) -C man
 	# build octave extensions -- set proper extension to prevent rebuilding
-	$(MAKE) -C src SUF=mex MEXBIN="mkoctfile --mex" MEXOPTS=""
+	#$(MAKE) -C src SUF=mex MEXBIN="mkoctfile --mex" MEXOPTS=""
 
 override_dh_auto_install:
 	# create a link in octaves PATH to SPM
@@ -45,14 +45,14 @@ override_dh_auto_install:
 	find debian/spm8-common/usr/share/spm8 -name '*.nii' -delete
 	# generate file links setup
 	cp debian/spm8-data.links.in debian/spm8-data.links
-	cp debian/spm8-matlab.links.in debian/spm8-matlab.links
+	cp debian/matlab-spm8.links.in debian/matlab-spm8.links
 	# put spm8 in Matlab's M-path
-	echo "/usr/share/spm8 $(MATLAB_MDIR)/spm8" >> debian/spm8-matlab.links
+	echo "/usr/share/spm8 $(MATLAB_MDIR)/spm8" >> debian/matlab-spm8.links
 	# mex files from /usr/lib/spm8 -> /usr/share/spm8
-	-rm -f debian/spm8-octave.links
-	for f in $$(find . -type f -name '*.mex'); do \
-		echo /usr/lib/spm8/$$(basename $$f) /usr/share/spm8/$$(basename $$f) >> debian/spm8-octave.links ; \
-	done
+	#-rm -f debian/octave-spm8.links
+	#for f in $$(find . -type f -name '*.mex'); do \
+	#	echo /usr/lib/spm8/$$(basename $$f) /usr/share/spm8/$$(basename $$f) >> debian/octave-spm8.links ; \
+	#done
 
 override_dh_auto_test:
 
@@ -60,7 +60,7 @@ override_dh_install:
 	dh_install
 	# fixing bits
 	# non-executable scripts
-	chmod +x debian/spm8-matlab/usr/src/matlab/spm8/Makefile
+	chmod +x debian/matlab-spm8/usr/src/matlab/spm8/Makefile
 
 override_dh_clean:
 	# clean after latex
@@ -71,8 +71,8 @@ override_dh_clean:
 	find src -name '*.o' -delete
 	find src -name '*.mex' -delete
 	rm -f debian/spm8-common.links
-	rm -f debian/spm8-octave.links
-	rm -f debian/spm8-matlab.links
+	rm -f debian/octave-spm8.links
+	rm -f debian/matlab-spm8.links
 	dh_clean
 
 override_dh_compress:
@@ -82,7 +82,7 @@ override_dh_compress:
 # just to run octave-depends
 override_dh_fixperms:
 	dh_fixperms
-	octave-depends
+	#octave-depends
 
 override_dh_shlibdeps:
 	# octave will take care of proper deps for extensions -- no need to scan

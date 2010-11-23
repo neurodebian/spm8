@@ -3,7 +3,8 @@ Section: science
 Priority: extra
 Maintainer: NeuroDebian Team <team@neuro.debian.net>
 Uploaders: Michael Hanke <michael.hanke@gmail.com>, Yaroslav Halchenko <debian@onerussian.com>
-Build-Depends: debhelper (>= 7.0.50~), octave3.2-headers | octave3.0-headers
+Build-Depends: debhelper (>= 7.0.50~)
+#Build-Depends: debhelper (>= 7.0.50~), octave3.2-headers | octave3.0-headers
 Standards-Version: 3.9.1
 Vcs-Browser: http://git.debian.org/?p=pkg-exppsy/spm8.git
 Vcs-Git: git://git.debian.org/git/pkg-exppsy/spm8.git
@@ -53,24 +54,24 @@ Description: manual for SPM8
  This package provides the SPM manual in PDF format.
 
 
-Package: spm8-octave
-Section: science
-Architecture: any
-Provides: spm8, spm
-Depends: ${octave:Depends}, spm8-common (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
-Description: analysis of brain imaging data sequences for Octave
- Statistical Parametric Mapping (SPM) refers to the construction and assessment
- of spatially extended statistical processes used to test hypotheses about
- functional brain imaging data. These ideas have been instantiated in software
- that is called SPM. It is designed for the analysis of fMRI, PET, SPECT, EEG
- and MEG data.
- .
- This package provides SPM to be used with Octave. Note that only a very small
- subset of SPM8 functionality works with Octave right now. This package is
- primarily provided to facilitate porting SPM to Octave.
+#Package: octave-spm8
+#Section: science
+#Architecture: any
+#Provides: spm8, spm
+#Depends: ${octave:Depends}, spm8-common (= ${source:Version}), ${shlibs:Depends}, ${misc:Depends}
+#Description: analysis of brain imaging data sequences for Octave
+# Statistical Parametric Mapping (SPM) refers to the construction and assessment
+# of spatially extended statistical processes used to test hypotheses about
+# functional brain imaging data. These ideas have been instantiated in software
+# that is called SPM. It is designed for the analysis of fMRI, PET, SPECT, EEG
+# and MEG data.
+# .
+# This package provides SPM to be used with Octave. Note that only a very small
+# subset of SPM8 functionality works with Octave right now. This package is
+# primarily provided to facilitate porting SPM to Octave.
 
 
-Package: spm8-matlab
+Package: matlab-spm8
 Section: contrib/science
 Architecture: all
 Provides: spm8, spm
