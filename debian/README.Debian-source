@@ -1,0 +1,10 @@
+Debian source package of SPM8
+=============================
+
+The official SPM8 distribution contains a number of external software
+(including binary-only portions) and pre-compiled MEX extensions.
+
+All binary parts have been strip from the source packages, as well as external
+software that is useful without SPM and will be packaged separately.
+
+ -- Michael Hanke <michael.hanke@gmail.com>  Tue, 23 Nov 2010 09:22:24 -0500

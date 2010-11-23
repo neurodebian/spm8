@@ -1,0 +1,15 @@
+SPM8 for Debian
+---------------
+
+The Debian package of SPM8 doesn't ship any pre-compiled MEX extensions. These
+extensions are automatically built when installing the matlab-spm8 package.
+
+To use SPM8 with MATLAB it has to be added to its search path. The corresponding
+installation directory is /usr/share/matlab/site/m/spm8. Adding
+
+  addpath('/usr/share/matlab/site/m/spm8')
+
+to a user's "startup.m" or the system-wide MATLAB configuration will enable
+SPM8.
+
+ -- Michael Hanke <michael.hanke@gmail.com>  Tue, 23 Nov 2010 09:22:24 -0500

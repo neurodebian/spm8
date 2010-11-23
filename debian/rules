@@ -53,6 +53,10 @@ override_dh_auto_install:
 	#for f in $$(find . -type f -name '*.mex'); do \
 	#	echo /usr/lib/spm8/$$(basename $$f) /usr/share/spm8/$$(basename $$f) >> debian/octave-spm8.links ; \
 	#done
+	# put convenience commands
+	printf "#! /bin/sh\n\nmatlab -r \"addpath('/usr/share/matlab/site/m/spm8'); spm\"\n" \
+		> debian/matlab-spm8/usr/bin/spm8-matlab
+	chmod +x debian/matlab-spm8/usr/bin/spm8-matlab
 
 override_dh_auto_test:
 
