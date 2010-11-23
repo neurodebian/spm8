@@ -3,9 +3,8 @@ set -e
 
 case "$1" in
     configure)
-        debian-matlab-mexhelper spm8 'make MEXBIN="matlab-mex"' \
-            --clean-cmd "make distclean" \
-            --install-cmd "make install DESTDIR=/usr/share/spm8"
+        debian-matlab-mexhelper spm8 install \
+            --build-cmd 'make MEXBIN="matlab-mex"'
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

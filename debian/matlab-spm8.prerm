@@ -1,15 +1,18 @@
 #!/bin/sh
 set -e
 
-for m in /usr/lib/spm8/*.mex?*; do
-	mbase=$(basename $m)
-	# remove symlink
-	rm -f /usr/share/spm8/$mbase
-	# and actual file
-	rm -f /usr/lib/spm8/$mbase
-done
+case "$1" in
+    remove|upgrade|deconfigure)
+        debian-matlab-mexhelper spm8 clean
+    ;;
 
-# try removing the libdir, but don't fail if not empty
-rmdir --ignore-fail-on-non-empty /usr/lib/spm8
+    failed-upgrade)
+    ;;
+
+    *)
+        echo "prerm called with unknown argument \`$1'" >&2
+        exit 1
+    ;;
+esac
 
 #DEBHELPER#
