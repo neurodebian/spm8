@@ -14,8 +14,7 @@ XS-DM-Upload-Allowed: yes
 Package: spm8-common
 Architecture: all
 Depends: ${misc:Depends}
-Recommends: spm8-data
-Suggests: spm8-doc
+Recommends: spm8-data, spm8-doc
 Description: analysis of brain imaging data sequences
  Statistical Parametric Mapping (SPM) refers to the construction and assessment
  of spatially extended statistical processes used to test hypotheses about
