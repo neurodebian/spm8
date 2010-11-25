@@ -5,11 +5,13 @@
  
 #define _FILE_OFFSET_BITS 64
 
+#include <stdio.h>
 #include "mex.h"
+
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    bool status    = false;
+    bool status    = 0;
     char *filename = NULL;
     FILE *fid      = NULL;
     
@@ -23,7 +25,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         fid = fopen(filename,"r");
         if (fid != NULL)
         {
-            status = true;
+            status = 1;
             fclose(fid);
         }
         mxFree(filename);
