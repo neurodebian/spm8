@@ -38,6 +38,7 @@ function check_basic
 
 %-Minimal MATLAB version required
 %--------------------------------------------------------------------------
+if ~isOctave
 try
     v = spm_matlab_version_chk('7.1');
 catch
@@ -48,7 +49,9 @@ if v < 0
         'SPM8 requires MATLAB 7.1 onwards in order to run.\n'...
         'This MATLAB version is %s\n'], version);
 end
-
+else
+disp('You are using Octave! Awesome.');
+end
 %-Check installation
 %--------------------------------------------------------------------------
 spm('Ver','',1);

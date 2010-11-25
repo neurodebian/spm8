@@ -18,7 +18,7 @@ function [cfg, def] = cfg_mlbatch_appcfg(varargin)
 
 rev = '$Rev: 3179 $'; %#ok
 
-if ~isdeployed2
+if ~isdeployed
     % get path to this file
     p = fileparts(mfilename('fullpath'));
     % in this case, the cfg_mlbatch_appcfg file is not in the application
