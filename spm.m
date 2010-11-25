@@ -303,15 +303,16 @@ end
 
 %-Open startup window, set window defaults
 %-----------------------------------------------------------------------
-Fwelcome = openfig(fullfile(spm('Dir'),'spm_Welcome.fig'),'new','invisible');
-set(Fwelcome,'name',sprintf('%s%s',spm('ver'),spm('GetUser',' (%s)')));
-set(get(findobj(Fwelcome,'Type','axes'),'children'),'FontName',spm_platform('Font','Times'));
-set(findobj(Fwelcome,'Tag','SPM_VER'),'String',spm('Ver'));
-RectW = spm('WinSize','W',1); Rect0 = spm('WinSize','0',1);
-set(Fwelcome,'Units','pixels', 'Position',...
-    [Rect0(1)+(Rect0(3)-RectW(3))/2, Rect0(2)+(Rect0(4)-RectW(4))/2, RectW(3), RectW(4)]);
-set(Fwelcome,'Visible','on');
-
+if ~isOctave
+    Fwelcome = openfig(fullfile(spm('Dir'),'spm_Welcome.fig'),'new','invisible');
+    set(Fwelcome,'name',sprintf('%s%s',spm('ver'),spm('GetUser',' (%s)')));
+    set(get(findobj(Fwelcome,'Type','axes'),'children'),'FontName',spm_platform('Font','Times'));
+    set(findobj(Fwelcome,'Tag','SPM_VER'),'String',spm('Ver'));
+    RectW = spm('WinSize','W',1); Rect0 = spm('WinSize','0',1);
+    set(Fwelcome,'Units','pixels', 'Position',...
+        [Rect0(1)+(Rect0(3)-RectW(3))/2, Rect0(2)+(Rect0(4)-RectW(4))/2, RectW(3), RectW(4)]);
+    set(Fwelcome,'Visible','on');
+end
 %=======================================================================
 case 'asciiwelcome'                           %-ASCII SPM banner welcome
 %=======================================================================
@@ -343,7 +344,9 @@ spm_defaults;                                              fprintf('.');
 
 %-Setup for batch system
 %-----------------------------------------------------------------------
-spm_jobman('initcfg');
+%if ~isOctave
+    spm_jobman('initcfg');
+%end
 spm_select('prevdirs',[spm('Dir') filesep]);
 
 %-Draw SPM windows
@@ -355,6 +358,7 @@ else
     Fmenu  = [];
     Finter = [];
 end
+if ~isOctave
 Fgraph = spm_figure('Create','Graphics','Graphics','off'); fprintf('.');
    
 spm_figure('WaterMark',Finter,spm('Ver'),'',45);           fprintf('.');
@@ -362,15 +366,16 @@ spm_figure('WaterMark',Finter,spm('Ver'),'',45);           fprintf('.');
 Fmotd  = fullfile(spm('Dir'),'spm_motd.man');
 if exist(Fmotd,'file'), spm_help('!Disp',Fmotd,'',Fgraph,spm('Ver')); end
                                                            fprintf('.');
-
+end
 %-Setup for current modality
 %-----------------------------------------------------------------------
 spm('ChMod',Modality);                                     fprintf('.');
 
 %-Reveal windows
 %-----------------------------------------------------------------------
+if ~isOctave
 set([Fmenu,Finter,Fgraph],'Visible','on');          fprintf('done\n\n');
-
+end
 %-Print present working directory
 %-----------------------------------------------------------------------
 fprintf('SPM present working directory:\n\t%s\n',pwd)
@@ -492,13 +497,14 @@ if nargin<2, Vis='on'; else Vis=varargin{2}; end
 
 %-Close any existing 'Menu' 'Tag'ged windows
 %-----------------------------------------------------------------------
+if ~isOctave
 delete(spm_figure('FindWin','Menu'))
 Fmenu = openfig(fullfile(spm('Dir'),'spm_Menu.fig'),'new','invisible');
 set(Fmenu,'name',sprintf('%s%s: Menu',spm('ver'),spm('GetUser',' (%s)')));
 S0 = spm('WinSize','0',1);
 SM = spm('WinSize','M');
 set(Fmenu,'Units','pixels', 'Position',[S0(1) S0(2) 0 0] + SM);
-
+end
 %-Set SPM colour
 %-----------------------------------------------------------------------
 set(findobj(Fmenu,'Tag', 'frame'),'backgroundColor',spm('colour'));
@@ -946,7 +952,6 @@ if isempty(CmdLine)
     end
 end
 varargout = {CmdLine || (get(0,'ScreenDepth')==0)};
-
 
 %=======================================================================
 case 'popupcb'               %-Callback handling utility for PopUp menus
