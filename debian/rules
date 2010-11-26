@@ -24,25 +24,13 @@ override_dh_auto_install:
 	find . -maxdepth 1 -type f \
 		-exec install -m 644 -t debian/spm8-common/usr/share/spm8 \{\} \;
 	# and all directories, but a few that are shipped in other packages
-	find . -maxdepth 1 -mindepth 1 -type d \
-		! -name debian \
-		! -name templates \
-		! -name tpm \
-		! -name rend \
-		! -name man \
-		! -name apriori \
-		! -name src \
-		! -name EEGtemplates \
-		! -name .git ! -name .pc \
-		! -name canonical \
+	find . -maxdepth 1 -mindepth 1 -type d -regextype posix-egrep ! -regex \
+		'\./(\.pc|\.git|debian|templates|tpm|rend|man|apriori|src|EEGtemplates|cannonical)' \
 		-exec cp -r -t debian/spm8-common/usr/share/spm8 \{\} \;
 	# cleanup overshoot
-	find debian/spm8-common/usr/share/spm8 -type f -name '*.c' -delete
-	find debian/spm8-common/usr/share/spm8 -type f -name '*.h' -delete
-	find debian/spm8-common/usr/share/spm8 -type f -name 'spm_LICENCE.man' -delete
-	find debian/spm8-common/usr/share/spm8 -type f -name 'Makefile' -delete
-	find debian/spm8-common/usr/share/spm8 -name '.git*' -delete
-	find debian/spm8-common/usr/share/spm8 -name '*.nii' -delete
+	find debian/spm8-common/usr/share/spm8 -regextype posix-egrep -type f \
+		-regex '.*(\.([ch]|gii|nii)|Makefile|spm_LICENCE.man|\.gitignore)' \
+		-delete
 	# generate file links setup
 	cp debian/spm8-data.links.in debian/spm8-data.links
 	cp debian/matlab-spm8.links.in debian/matlab-spm8.links
@@ -57,6 +45,12 @@ override_dh_auto_install:
 	printf "#! /bin/sh\n\nmatlab -r \"addpath('/usr/share/matlab/site/m/spm8'); spm\"\n" \
 		> debian/matlab-spm8/usr/bin/spm8-matlab
 	chmod +x debian/matlab-spm8/usr/bin/spm8-matlab
+	# install the extension sources
+	find . -type f -regextype posix-egrep \
+		! -regex '^\./(\.pc|\.git|debian|man)/.*' \
+		-regex '.*(Makefile|.c|.h)$$' -print0 \
+		| xargs -0 -I {} \
+		cp --parent {} debian/matlab-spm8/$(MATLAB_MEX_SRCDIR)/spm8
 
 override_dh_auto_test:
 
@@ -64,7 +58,8 @@ override_dh_install:
 	dh_install
 	# fixing bits
 	# non-executable scripts
-	chmod +x debian/matlab-spm8/usr/src/matlab/spm8/Makefile
+	find debian/matlab-spm8/$(MATLAB_MEX_SRCDIR)/spm8 -name Makefile \
+		-exec chmod +x {} \;
 
 override_dh_clean:
 	# clean after latex
