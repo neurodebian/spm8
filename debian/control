@@ -22,7 +22,7 @@ Description: analysis of brain imaging data sequences
  that is called SPM. It is designed for the analysis of fMRI, PET, SPECT, EEG
  and MEG data.
  .
- This package provides the platform-agnostic (Octave and Matlab) functionality.
+ This package provides the platform-independent M-files.
 
 
 Package: spm8-data
