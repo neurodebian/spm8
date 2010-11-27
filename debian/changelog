@@ -9,8 +9,9 @@ spm8 (8.4010~dfsg.1-3) unstable; urgency=low
     Tettamanti for pointing it out.
   * Build-depend on matlab-dev to get the installation locations of Matlab
     toolboxes.
+  * Complete and verify current build-dependencies.
 
- -- Michael Hanke <michael.hanke@gmail.com>  Sat, 27 Nov 2010 11:04:56 -0500
+ -- Michael Hanke <michael.hanke@gmail.com>  Sat, 27 Nov 2010 12:26:34 -0500
 
 spm8 (8.4010~dfsg.1-2) unstable; urgency=low
 
