@@ -3,8 +3,8 @@ Section: science
 Priority: extra
 Maintainer: NeuroDebian Team <team@neuro.debian.net>
 Uploaders: Michael Hanke <michael.hanke@gmail.com>, Yaroslav Halchenko <debian@onerussian.com>
-Build-Depends: debhelper (>= 7.0.50~)
-#Build-Depends: debhelper (>= 7.0.50~), octave3.2-headers | octave3.0-headers
+Build-Depends: debhelper (>= 7.0.50~), matlab-dev
+#Build-Depends: debhelper (>= 7.0.50~), octave3.2-headers | octave3.0-headers, matlab-dev
 Standards-Version: 3.9.1
 Vcs-Browser: http://git.debian.org/?p=pkg-exppsy/spm8.git
 Vcs-Git: git://git.debian.org/git/pkg-exppsy/spm8.git
