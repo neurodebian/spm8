@@ -48,7 +48,7 @@ override_dh_auto_install:
 	# install the extension sources
 	find . -type f -regextype posix-egrep \
 		! -regex '^\./(\.pc|\.git|debian|man)/.*' \
-		-regex '.*(Makefile|.c|.h)$$' -print0 \
+		-regex '.*(Makefile|Makefile.var|\.c|\.h)$$' -print0 \
 		| xargs -0 -I {} \
 		cp --parent {} debian/matlab-spm8/$(MATLAB_MEX_SRCDIR)/spm8
 

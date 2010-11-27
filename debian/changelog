@@ -1,3 +1,10 @@
+spm8 (8.4010~dfsg.1-3) unstable; urgency=low
+
+  * Build all SPM toolbox extensions.
+  * Drop extension Makefile patch.
+
+ -- Michael Hanke <michael.hanke@gmail.com>  Fri, 26 Nov 2010 20:46:07 -0500
+
 spm8 (8.4010~dfsg.1-2) unstable; urgency=low
 
   * Improve Debian-related documentation.
