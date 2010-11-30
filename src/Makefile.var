@@ -33,8 +33,15 @@
 
 SHELL          = /bin/sh
 MAKE           = make
+ifndef SUF
 MEXBIN         = mex
 MEXOPTS        = -O
+else
+ifeq (mex,$(SUF))
+MEXBIN         = mkoctfile 
+MEXOPTS        = --mex
+endif
+endif
 MEXEND         = 
 MOSUF          = o # mex output object suffix
 UNAME          = uname
