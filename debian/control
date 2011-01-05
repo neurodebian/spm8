@@ -2,9 +2,9 @@ Source: spm8
 Section: science
 Priority: extra
 Maintainer: NeuroDebian Team <team@neuro.debian.net>
-Uploaders: Michael Hanke <michael.hanke@gmail.com>, Yaroslav Halchenko <debian@onerussian.com>
-Build-Depends: debhelper (>= 7.0.50~), matlab-dev, texlive-latex-extra, texlive-latex-recommended, texlive-fonts-recommended
-#Build-Depends: debhelper (>= 7.0.50~), octave3.2-headers | octave3.0-headers, matlab-dev, texlive-latex-extra, texlive-latex-recommended, texlive-fonts-recommended
+Uploaders: Michael Hanke <mih@debian.org>, Yaroslav Halchenko <debian@onerussian.com>
+Build-Depends: debhelper (>= 7.0.50~), matlab-support-dev, texlive-latex-extra, texlive-latex-recommended, texlive-fonts-recommended
+#Build-Depends: debhelper (>= 7.0.50~), octave3.2-headers | octave3.0-headers, texlive-latex-extra, texlive-latex-recommended, texlive-fonts-recommended
 Standards-Version: 3.9.1
 Vcs-Browser: http://git.debian.org/?p=pkg-exppsy/spm8.git
 Vcs-Git: git://git.debian.org/git/pkg-exppsy/spm8.git
@@ -74,7 +74,7 @@ Package: matlab-spm8
 Section: contrib/science
 Architecture: all
 Provides: spm8, spm
-Depends: matlab, spm8-common (= ${source:Version}), ${misc:Depends}, make
+Depends: matlab-support, spm8-common (= ${source:Version}), ${misc:Depends}, make
 Description: analysis of brain imaging data sequences for Matlab
  Statistical Parametric Mapping (SPM) refers to the construction and assessment
  of spatially extended statistical processes used to test hypotheses about
