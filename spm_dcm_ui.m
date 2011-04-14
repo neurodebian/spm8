@@ -65,7 +65,7 @@ function spm_dcm_ui(Action)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_dcm_ui.m 3958 2010-06-30 16:24:46Z guillaume $
+% $Id: spm_dcm_ui.m 4267 2011-03-29 15:45:26Z guillaume $
 
 
 % Get figure handles
@@ -83,8 +83,13 @@ disp('Please refer to this version as DCM10 in papers and publications.');
 % Options, using pull-down menu
 %--------------------------------------------------------------------------
 if ~nargin
-    str       = 'Action: ';
-    Actions   = {'specify','estimate','review','compare','average','quit'};
+    str       =  'Action: ';
+    Actions   = {'specify',  ...
+                 'estimate', ...
+                 'review',   ...
+                 'compare',  ...
+                 'average',  ...
+                 'quit'};
     selected = spm_input(str,1,'m',Actions);
     Action   = Actions{selected};
 end
@@ -135,8 +140,8 @@ case 'review',
     spm('FnBanner','spm_dcm_review');
     
     spm_dcm_review;
-
-
+    
+    
 %==========================================================================
 % Compare different models
 %==========================================================================

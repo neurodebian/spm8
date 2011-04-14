@@ -13,7 +13,7 @@ function spm_DEM_qU(qU,pU)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_DEM_qU.m 3878 2010-05-07 19:53:54Z karl $
+% $Id: spm_DEM_qU.m 4247 2011-03-14 18:16:50Z karl $
  
 % unpack
 %--------------------------------------------------------------------------
@@ -31,17 +31,23 @@ try
     pV = pU.v;
     pX = pU.x;
 end
-try
-    pA = qU.a;
-end
  
+% order of hierarchy
+%--------------------------------------------------------------------------
+try
+    g = length(X) + 1;                           
+    if issempty(X{end})
+        g = g - 1;
+    end
+catch
+    g = length(V);
+end
+
 % time-series specification
 %--------------------------------------------------------------------------
-g     = length(V);          % order of hierarchy
-N     = size(V{1},2);       % length of data sequence
-dt    = 1;                  % time step
-t     = [1:N]*dt;           % time
- 
+N     = size(V{1},2);                            % length of data sequence
+dt    = 1;                                       % time step
+t     = [1:N]*dt;                                % time
  
 % unpack conditional covariances
 %--------------------------------------------------------------------------
@@ -61,7 +67,7 @@ for i = 1:g
  
     if N == 1
  
-        % causal states and error - single observation
+        % hidden causes and error - single observation
         %------------------------------------------------------------------
         subplot(g,2,2*i - 1)
         t = 1:size(V{i},1);
@@ -77,7 +83,7 @@ for i = 1:g
             y      = ci*c(j,:);
             c(j,:) = [];
             fill([t fliplr(t)],[full(V{i} + y)' fliplr(full(V{i} - y)')],...
-                 [1 1 1]*.8,'EdgeColor',[1 1 1]*.6)
+                 [1 1 1]*.8,'EdgeColor',[1 1 1]*.8)
             plot(t,full(E{i}),'r:',t,full(V{i}))
             hold off
         end
@@ -91,17 +97,20 @@ for i = 1:g
  
     else
  
-        % causal states and error - time series
+        % hidden causes and error - time series
         %------------------------------------------------------------------
         subplot(g,2,2*i - 1)
         try
-            plot(t,pV{i},':k','linewidth',1),box off
+            plot(t,pV{i},':k','linewidth',1)
         end
         hold on
         try
-            plot(t,full(E{i}(:,1:N)),'r:',t,full(V{i})),box off
+            plot(t,full(V{i}))
         end
-        hold off
+        try
+            plot(t,full(E{i}),'r:')
+        end
+        box off, hold off
         set(gca,'XLim',[t(1) t(end)])
         a   = axis;
  
@@ -109,15 +118,18 @@ for i = 1:g
         %------------------------------------------------------------------
         if i > 1 && size(c,1)
             hold on
-            j      = [1:size(V{i},1)];
+            j      = (1:size(V{i},1));
             y      = ci*c(j,:);
             c(j,:) = [];
             fill([t fliplr(t)],[full(V{i} + y) fliplr(full(V{i} - y))],...
-                        [1 1 1]*.8,'EdgeColor',[1 1 1]*.6)
+                        [1 1 1]*.8,'EdgeColor',[1 1 1]*.8)
             try 
-                plot(t,pV{i},':k','linewidth',1),box off
+                plot(t,pV{i},':k','linewidth',1)
             end
-            plot(t,full(E{i}(:,1:N)),'r:',t,full(V{i}))
+            try
+                plot(t,full(E{i}),'r:')
+            end
+            plot(t,full(V{i})),box off
             hold off
         end
  
@@ -125,6 +137,8 @@ for i = 1:g
         %------------------------------------------------------------------
         if i == 1
             title('prediction and error','FontSize',16);
+        elseif length(V) < i
+            title('no causes','FontSize',16);
         elseif ~size(V{i},1)
             title('no causes','FontSize',16);
         else
@@ -132,11 +146,6 @@ for i = 1:g
             try
                 hold on
                 plot(t,pV{i},':k','linewidth',1),box off
-            end
-            hold off
-            try
-                hold on
-                plot(t,pA{i - 1},'linewidth',1,'color',[1 0 0]),box off
             end
             hold off
         end
@@ -189,14 +198,16 @@ end
 %--------------------------------------------------------------------------
 if isfield(qU,'a')
     subplot(g,2,2*g)
-    plot(t,qU.a{2});
+    plot(t,qU.a{end});
+    str = 'action';
     try
         hold on
         plot(t,pU.v{2},':b','Linewidth',2),box off
+        str = 'perturbation and action';
     end
     hold off
     xlabel('time','Fontsize',14)
-    title('perturbation and action','Fontsize',16)
+    title(str,'Fontsize',16)
     axis square
     set(gca,'XLim',[t(1) t(end)])
     box off

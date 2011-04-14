@@ -5,12 +5,12 @@ function varargout = spm_eeg_inv_visu3D_api(varargin)
 % - SPM_EEG_INV_VISU3D_API(filename) where filename is the eeg/meg .mat file
 % - SPM_EEG_INV_VISU3D_API('callback_name', ...) invoke the named callback.
 %
-% Last Modified by GUIDE v2.5 01-Feb-2007 20:16:13
+% Last Modified by GUIDE v2.5 18-Feb-2011 14:23:27
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Jeremie Mattout
-% $Id: spm_eeg_inv_visu3D_api.m 4004 2010-07-20 15:45:39Z vladimir $
+% $Id: spm_eeg_inv_visu3D_api.m 4211 2011-02-23 16:00:02Z vladimir $
 
 % INITIALISATION CODE
 %--------------------------------------------------------------------------
@@ -71,7 +71,7 @@ catch
 end
 
 if ~isfield(D,'inv')
-    error(sprintf('Please specify and invert a forward model\n'));
+    error('Please specify and invert a forward model\n');
 end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % GET RESULTS (default: current or last analysis)
@@ -129,13 +129,18 @@ try
     handles.pst       = D.inv{val}.inverse.pst(Ts);
     handles.srcs_data = J;
     handles.Nmax      = max(abs(J(:)));
+    handles.Is        = Is;
     
     % sensor data
-    %----------------------------------------------------------------------
-    A                 = pinv(full(spm_cat(spm_diag(U))));
+    %----------------------------------------------------------------------        
+    if ~iscell(U)
+        U = {U'};
+    end
+    
+    A             = spm_pinv(spm_cat(spm_diag(U))')';    
+    
     handles.sens_data = A*Y*T(Ts,:)';
     handles.pred_data = A*L*J(Is,:);
-    
 catch
     warndlg({'Please invert your model';'inverse solution not valid'});
     return
@@ -185,7 +190,7 @@ end
 
 handles.vert  = vert;
 handles.face  = face;
-handles.grayc = sqrt(sum((vert.^2)')); handles.grayc = handles.grayc'/max(handles.grayc);
+handles.grayc = sqrt(sum((vert.^2),2)); handles.grayc = handles.grayc'/max(handles.grayc);
 clear vert face
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -228,9 +233,24 @@ handles.colorbar = colorbar;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % LOAD SENSOR FILE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-coor = D.coor2D;
-xp = coor(1,:)';
-yp = coor(2,:)';
+Ic = {};
+if iscell(D.inv{val}.inverse.Ic)
+    for i = 1:numel(D.inv{val}.inverse.Ic)
+        if i == 1
+            Ic{i} = 1:length(D.inv{val}.inverse.Ic{i});
+        else
+            Ic{i} = Ic{i-1}(end)+(1:length(D.inv{val}.inverse.Ic{i}));
+        end
+    end
+else
+   Ic{1} = 1:length(D.inv{val}.inverse.Ic); 
+end
+
+handles.Ic = Ic;
+
+coor = D.coor2D(full(spm_cat(D.inv{val}.inverse.Ic)));
+xp   = coor(1,:)';
+yp   = coor(2,:)';
 
 x        = linspace(min(xp),max(xp),64);
 y        = linspace(min(yp),max(yp),64);
@@ -242,20 +262,29 @@ handles.sens_coord = [xp yp];
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % INITIAL SENSOR LEVEL DISPLAY
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+if isfield(D.inv{val}.inverse, 'modality')
+  set(handles.modality, 'String', D.inv{val}.inverse.modality);
+else
+   set(handles.modality, 'String', 'MEEG');  % This is for backward compatibility with old DCM-IMG
+end
+
 figure(handles.fig)
 axes(handles.sensors_axes);
 cla; axis off
 
-ic       = 1:length(handles.sens_coord);
-disp     = full(handles.sens_data(ic,1));
-imagesc(x,y,griddata(xp,yp,disp,xm,ym));
+im       = get(handles.modality, 'Value');
+
+ic         = handles.Ic{im};
+disp       = full(handles.sens_data(ic,1));
+imagesc(x,y,griddata(xp(ic),yp(ic),disp,xm,ym));
 axis image xy off
 handles.sens_coord_x   = x;
 handles.sens_coord_y   = y;
 handles.sens_coord2D_X = xm;
 handles.sens_coord2D_Y = ym;
 hold on
-handles.sensor_loc = plot(handles.sens_coord(:,1),handles.sens_coord(:,2),'o','MarkerFaceColor',[1 1 1]/2,'MarkerSize',6);
+handles.sensor_loc = plot(handles.sens_coord(ic,1),handles.sens_coord(ic,2),'o','MarkerFaceColor',[1 1 1]/2,'MarkerSize',6);
 set(handles.checkbox_sensloc,'Value',1);
 hold off
 
@@ -264,7 +293,7 @@ hold off
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 axes(handles.pred_axes); cla;
 disp      = full(handles.pred_data(ic,1));
-imagesc(x,y,griddata(xp,yp,disp,xm,ym));
+imagesc(x,y,griddata(xp(ic),yp(ic),disp,xm,ym));
 axis image xy off
 drawnow
 
@@ -346,7 +375,9 @@ Set_colormap(hObject, [], handles);
 function UpDate_Display_SENS(hObject,handles)
 TypOfDisp = get(handles.sens_display,'Value');
 ActToDisp = get(handles.Activity,'Value');
-ic        = 1:length(handles.sens_coord);
+
+im       = get(handles.modality, 'Value');
+ic       = handles.Ic{im};
 
 
 % topography
@@ -376,7 +407,7 @@ if TypOfDisp == 1
     end
     
     axes(handles.sensors_axes);
-    disp = griddata(handles.sens_coord(:,1),handles.sens_coord(:,2),full(sens_disp),handles.sens_coord2D_X,handles.sens_coord2D_Y);
+    disp = griddata(handles.sens_coord(ic,1),handles.sens_coord(ic,2),full(sens_disp),handles.sens_coord2D_X,handles.sens_coord2D_Y);
     imagesc(handles.sens_coord_x,handles.sens_coord_y,disp);
     axis image xy off
     
@@ -385,11 +416,11 @@ if TypOfDisp == 1
     try, delete(handles.sensor_loc); end
     hold(handles.sensors_axes, 'on');
     handles.sensor_loc = plot(handles.sensors_axes,...
-        handles.sens_coord(:,1),handles.sens_coord(:,2),'o','MarkerFaceColor',[1 1 1]/2,'MarkerSize',6);
+        handles.sens_coord(ic,1),handles.sens_coord(ic,2),'o','MarkerFaceColor',[1 1 1]/2,'MarkerSize',6);
     hold(handles.sensors_axes, 'off');
     
     axes(handles.pred_axes);
-    disp = griddata(handles.sens_coord(:,1),handles.sens_coord(:,2),full(pred_disp),handles.sens_coord2D_X,handles.sens_coord2D_Y);
+    disp = griddata(handles.sens_coord(ic,1),handles.sens_coord(ic,2),full(pred_disp),handles.sens_coord2D_X,handles.sens_coord2D_Y);
     imagesc(handles.sens_coord_x,handles.sens_coord_y,disp);
     axis image xy off;
     
@@ -401,7 +432,7 @@ elseif TypOfDisp == 2
     axes(handles.sensors_axes)
     daspect('auto')
     handles.fig2 = ...
-        plot(handles.pst,handles.sens_data,'b-.',handles.pst,handles.pred_data,'r:');
+        plot(handles.pst,handles.sens_data(ic, :),'b-.',handles.pst,handles.pred_data(ic, :),'r:');
     if ActToDisp > 1
         hold on
         Scal = norm(handles.sens_data,1)/norm(handles.W,1);
@@ -468,7 +499,8 @@ UpDate_Display_SENS(hObject,handles);
 function Individual_Callback(hObject, eventdata, handles)
 set(handles.Template,'Value',0);
 try
-    handles.vert = handles.D.inv{handles.D.val}.mesh.tess_ctx.vert;
+    tess_ctx = gifti(handles.D.inv{handles.D.val}.mesh.tess_ctx);
+    handles.vert = tess_ctx.vertices;
     set(handles.Template,  'Value',0);
     set(handles.Individual,'Value',1);
 end
@@ -722,20 +754,38 @@ end
 set(handles.con,'String',sprintf('condition %d',handles.D.con),'Value',0);
 spm_eeg_inv_visu3D_api_OpeningFcn(hObject, eventdata, handles)
 
-
 % --- Executes on button press in VDE.
 %--------------------------------------------------------------------------
 function Velec_Callback(hObject, eventdata, handles)
 axes(handles.sources_axes);
-try
-    vde = getCursorInfo(handles.location);
-    spm_eeg_invert_display(handles.D,vde.Position)
-    datacursormode(handles.fig, 'off');
-catch
-    vde = [];
-    handles.location = datacursormode(handles.fig, 'on');
-    set(handles.location,'Enable','on','DisplayStyle','datatip','SnapToDataVertex','on', 'UpdateFcn', {@CursorUpdate_Callback, handles});
+rotate3d off;
+datacursormode off;
+
+if isfield(handles, 'velec')
+    delete(handles.velec);
+    handles = rmfield(handles, 'velec');
 end
+
+set(handles.fig1, 'ButtonDownFcn', @Velec_ButtonDown)
+
+guidata(hObject,handles);
+
+function Velec_ButtonDown(hObject, eventdata)
+handles     = guidata(hObject);
+vert        = handles.vert(handles.Is, :);
+coord       = get(handles.sources_axes, 'CurrentPoint');
+dist        = sum((vert - repmat(coord(1, :), size(vert, 1), 1)).^2, 2);
+[junk, ind] = min(dist);
+coord       = vert(ind, :);
+
+axes(handles.sources_axes);
+hold on
+handles.velec = plot3(coord(1), coord(2), coord(3), 'rv', 'MarkerSize', 10);
+
+spm_eeg_invert_display(handles.D, coord);
+
+set(handles.fig1, 'ButtonDownFcn', '');
+guidata(hObject,handles);
 
 
 % --- Executes on button press in Rot.
@@ -745,7 +795,12 @@ rotate3d(handles.sources_axes)
 return
 
 
-function text = CursorUpdate_Callback(hObject, eventdata, handles)
-pos = get(eventdata,'Position');
-text = num2str(pos);
-spm_eeg_invert_display(handles.D, get(eventdata, 'Position'));
+% --- Executes on selection change in modality.
+function modality_Callback(hObject, eventdata, handles)
+% hObject    handle to modality (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns modality contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from modality
+UpDate_Display_SENS(hObject,handles)

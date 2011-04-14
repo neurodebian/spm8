@@ -1,5 +1,5 @@
 /*
- * $Id: spm_bwlabel.c 1790 2008-06-05 11:27:02Z spm $
+ * $Id: spm_bwlabel.c 4178 2011-01-27 15:12:53Z guillaume $
  * Jesper Andersson
  */
 
@@ -23,8 +23,9 @@
  ***************************************************************/
 
 #include <math.h>
-#include "mex.h"
+#include <stdio.h>
 #include <limits.h>
+#include "mex.h"
 
 /* Silly little macros. */
 
@@ -361,7 +362,7 @@ void mexFunction(int             nlhs,      /* No. of output arguments */
 
    nl = translate_labels(il,dim,tt,ttn,l);
 
-   plhs[1] = mxCreateScalarDouble(nl);
+   plhs[1] = mxCreateDoubleScalar(nl);
 
    /* Clean up a bit. */
 

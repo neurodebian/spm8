@@ -9,7 +9,7 @@ function [result meegstruct]=checkmeeg(meegstruct, option)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: checkmeeg.m 3978 2010-07-08 14:26:39Z vladimir $
+% $Id: checkmeeg.m 4207 2011-02-22 10:48:36Z christophe $
 
 if nargin==1
     option = 'basic';
@@ -64,9 +64,23 @@ else
     end
     
     for k = 1:Ntrials
-        if isnumeric(meegstruct.trials(k).label)
-            meegstruct.trials(k).label = num2str(meegstruct.trials(k).label);
+        
+        label = meegstruct.trials(k).label;
+        
+        if iscell(label) && numel(label) == 1
+            label = label{1};
         end
+        
+        if isnumeric(label)
+            label = num2str(label);
+        end
+        
+        if isa(label, 'char')
+           meegstruct.trials(k).label = label;
+        else
+           meegstruct.trials(k).label = 'Unknown';
+           disp('checkmeeg: some trial labels were not strings, changing back to ''Unknown''');
+        end                        
         
         if  length(meegstruct.trials(k).bad)>1 || ~ismember(meegstruct.trials(k).bad, [0, 1])
             disp(['checkmeeg: illegal value for bad flag in trial ' num2str(k) ', setting to zero.']);
@@ -135,6 +149,11 @@ else
     else
         [meegstruct.channels(find(cellfun('isempty', {meegstruct.channels.bad}))).bad] = deal(0);
     end
+    
+    for i = 1:Nchannels
+        meegstruct.channels(i).bad = double(~~meegstruct.channels(i).bad);
+    end            
+    
     if ~isfield(meegstruct.channels, 'type')
         disp('checkmeeg: no channel type, assigning default');
         [meegstruct.channels.type] = deal('Other');
@@ -199,12 +218,20 @@ else
     end
     
     if isa(meegstruct.data.y, 'file_array')
+        % catching up (unlikely case) where filearray.fname is
+        % different from data.fnamedat -> set data.fnamedat
+        [junk, yfname, yext] = fileparts(meegstruct.data.y.fname);
+        [junk, dfname, dext] = fileparts(meegstruct.data.fnamedat);
+        if ~strcmp([yfname yext],[dfname dext])
+            meegstruct.data.fnamedat = [yfname yext];
+        end
+        % save original file_array scale & offset, just in case
+        sav_sc = meegstruct.data.y.scl_slope;
+        sav_os = meegstruct.data.y.offset;
         try
             % Try reading data, i.e. check if it's a "good" filearray
             meegstruct.data.y(1, 1, 1);
         catch
-            % save original file_array scale, just in case
-            sav_sc = meegstruct.data.y.scl_slope;
             meegstruct.data.y = [];
         end
     end
@@ -235,8 +262,13 @@ else
                 error('Unknown transform type');
         end
         % and restore original file_array scale, if available (exist) & useful (~=[])
-        if exist('sav_sc','var') && ~isempty(sav_sc)
+        if exist('sav_sc','var') && ~isempty(sav_sc) && ...
+                   size(meegstruct.data.y, 1) == length(sav_sc)            
             meegstruct.data.y.scl_slope = sav_sc;
+        end
+        % and restore original file_array offset, if available (exist) & useful (~=0)
+        if exist('sav_os','var') && sav_os
+            meegstruct.data.y.offset = sav_os;
         end
         
     end

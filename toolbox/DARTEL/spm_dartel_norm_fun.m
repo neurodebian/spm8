@@ -35,7 +35,7 @@ function out = spm_dartel_norm_fun(job)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_dartel_norm_fun.m 3728 2010-02-17 12:18:34Z john $
+% $Id: spm_dartel_norm_fun.m 4194 2011-02-05 18:08:06Z ged $
 
 % Hard coded stuff, that should maybe be customisable
 K    = 6;
@@ -59,8 +59,8 @@ Mt   = Nt.mat;
 dimt = size(Nt.dat);
 
 if any(isfinite(bb(:))) || any(isfinite(vox)),
-    [bb0,vox0] = bbvox(Mt,dimt);
-
+    [bb0 vox0] = spm_get_bbox(Nt, 'old');
+    
     msk = ~isfinite(vox); vox(msk) = vox0(msk);
     msk = ~isfinite(bb);   bb(msk) =  bb0(msk);
 
@@ -109,7 +109,7 @@ if isfield(job.data,'subj') || isfield(job.data,'subjs'),
         % Re-order data
         %--------------------------------------------------------------------------
         subjs = job.data.subjs;
-        subj  = struct('flowfield',cell(numel(subjs.flowfields),1),....
+        subj  = struct('flowfield',cell(numel(subjs.flowfields),1),...
                        'images',   cell(numel(subjs.flowfields),1));
         for i=1:numel(subj)
             subj(i).flowfield = {subjs.flowfields{i}};
@@ -173,19 +173,31 @@ for m=1:numel(PI),
     NI = nifti(fullfile(pth,[nam ext]));
     NO = NI;
     if jactransf,
-        NO.dat.fname=fullfile(pth,['smw' nam ext]);
+        if fwhm==0,
+            NO.dat.fname=fullfile(pth,['mw' nam ext]);
+        else
+            NO.dat.fname=fullfile(pth,['smw' nam ext]);
+        end
         NO.dat.scl_slope = 1.0;
         NO.dat.scl_inter = 0.0;
         NO.dat.dtype     = 'float32-le';
     else
-        NO.dat.fname=fullfile(pth,['sw' nam ext]);
+        if fwhm==0,
+            NO.dat.fname=fullfile(pth,['w' nam ext]);
+        else
+            NO.dat.fname=fullfile(pth,['sw' nam ext]);
+        end
     end
     NO.dat.dim = [dim NI.dat.dim(4:end)];
     NO.mat  = mat;
     NO.mat0 = mat;
     NO.mat_intent  = mat_intent;
     NO.mat0_intent = mat_intent;
-    NO.descrip = sprintf('Smoothed (%gx%gx%g) DARTEL normed',fwhm);
+    if fwhm==0,
+        NO.descrip = 'DARTEL normed';
+    else
+        NO.descrip = sprintf('Smoothed (%gx%gx%g) DARTEL normed',fwhm);
+    end
     out{m} = NO.dat.fname;
     NO.extras = [];
     create(NO);
@@ -245,7 +257,7 @@ for m=1:numel(PI),
                     [f,c] = dartel3('push',f,y,dim);
                     spm_smooth(f,f,krn); % Side effects
                     spm_smooth(c,c,krn); % Side effects
-                    f = f./(c+eps);
+                    f = f./(c+0.001); % I don't like it, but it may stop a few emails.
                 else
                     % Modulated, by pushing
                     scal = abs(det(NI.mat(1:3,1:3))/det(NO.mat(1:3,1:3))); % Account for vox sizes
@@ -260,13 +272,3 @@ for m=1:numel(PI),
     fprintf('\n'); drawnow;
 end
 %__________________________________________________________________________
-
-%__________________________________________________________________________
-function [bb,vx] = bbvox(M,dim)
-vx = sqrt(sum(M(1:3,1:3).^2));
-if det(M(1:3,1:3))<0, vx(1) = -vx(1); end;
-o  = M\[0 0 0 1]';
-o  = o(1:3)';
-bb = [-vx.*(o-1) ; vx.*(dim(1:3)-o)];
-return;
- 

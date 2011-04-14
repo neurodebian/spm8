@@ -13,7 +13,7 @@ function spm_check_installation(action)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % Guillaume Flandin
-% $Id: spm_check_installation.m 3913 2010-06-02 15:25:23Z guillaume $
+% $Id: spm_check_installation.m 4288 2011-04-04 14:45:17Z guillaume $
 
 if isdeployed, return; end
 
@@ -39,9 +39,9 @@ function check_basic
 %-Minimal MATLAB version required
 %--------------------------------------------------------------------------
 try
-    v = spm_matlab_version_chk('7.1');
+    v = spm_check_version('matlab','7.1');
 catch
-    error('Where is spm_matlab_version_chk.m?');
+    error('Where is spm_check_version.m?');
 end
 if v < 0
     error([...
@@ -72,7 +72,7 @@ end
 
 %-Ensure that the original release - as well as the updates - was installed
 %--------------------------------------------------------------------------
-if ~exist(fullfile(d,'spm_Npdf.m'),'file') % File that should not have changed
+if ~exist(fullfile(d,'@nifti','create.m'),'file') % File that should not have changed
     if isunix
         error(sprintf([...
             'There appears to be some problem with the installation.\n'...
@@ -80,14 +80,12 @@ if ~exist(fullfile(d,'spm_Npdf.m'),'file') % File that should not have changed
             'and the updates installed on top of this. Unix commands\n'...
             'to do this are:\n'...
             '   unzip spm8.zip\n'...
-            '   unzip -o spm8_updates_r????.zip -d spm8\n'...
-            'You may need help from your local network administrator.']));
+            '   unzip -o spm8_updates_r????.zip -d spm8']));
     else
         error(sprintf([...
             'There appears to be some problem with the installation.\n'...
             'The original spm8.zip distribution should be installed\n'...
-            'and the updates installed on top of this. If in doubt,\n'...
-            'consult your local network administrator.']));
+            'and the updates installed on top of this.']));
     end
 end
 
@@ -190,11 +188,11 @@ fprintf('SPM version is %s (%s, %s)\n', ...
 %-Detect SPM toolboxes
 %--------------------------------------------------------------------------
 officials = {'Beamforming', 'DARTEL', 'dcm_meeg', 'DEM', 'FieldMap', ...
-    'HDW', 'MEEGtools', 'mixture', 'Neural_Models', 'Seg', 'spectral', ...
-    'SRender'};
+    'HDW', 'MEEGtools', 'mixture', 'Neural_Models', 'Seg', 'Shoot', ...
+    'spectral', 'SRender'};
 dd = dir(fullfile(SPMdir,'toolbox'));
 dd = {dd([dd.isdir]).name};
-dd(strmatch('.',dd)) = [];
+dd(strncmp('.',dd,1)) = [];
 dd = setdiff(dd,officials);
 fprintf('SPM toolboxes:');
 for i=1:length(dd)
@@ -491,7 +489,7 @@ for i=1:length(f)
             dispw = true;
             fprintf('File %s appears %d times in your MATLAB path:\n',f{i},numel(w));
             for j=1:numel(w)
-                if j==1 && isempty(strmatch(d,w{1}))
+                if j==1 && ~strncmp(d,w{1},length(d))
                     fprintf('  %s (SHADOWING)\n',w{1});
                 else
                     fprintf('  %s\n',w{j});
@@ -505,7 +503,7 @@ if ~dispw, fprintf('%s',repmat(sprintf('\b'),1,70)); end
 %-Recursively extract subdirectories
 %--------------------------------------------------------------------------
 dd = {dd([dd.isdir]).name};
-dd(strmatch('.',dd)) = [];
+dd(strncmp('.',dd,1)) = [];
 for i=1:length(dd)
     l = generate_listing(d,fullfile(r,dd{i}),l);
 end
@@ -514,7 +512,7 @@ end
 % FUNCTION extract_info
 %==========================================================================
 function svnprops = extract_info(f)
-%Extract Subversion properties ($Id: spm_check_installation.m 3913 2010-06-02 15:25:23Z guillaume $ tag)
+%Extract Subversion properties (Id tag)
 
 svnprops = struct('file',f, 'id',[], 'date','', 'md5','');
 
@@ -533,8 +531,8 @@ else
     svnprops.id   = str2num(r(1).id);
     svnprops.date = r(1).date;
     [p,name,ext]  = fileparts(f);
-    if ~strmatch(svnprops.file,[name ext],'exact')
-        warning('SVN Id for %s does not match filename.',f);
+    if ~strcmp(svnprops.file,[name ext])
+        fprintf('\nSVN Id does not match filename for file:\n  %s\n',f);
     end
 end
 if numel(r) > 1

@@ -23,11 +23,11 @@ function spm_smooth(P,Q,s,dtype)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner & Tom Nichols
-% $Id: spm_smooth.m 3976 2010-07-08 14:12:31Z karl $
+% $Id: spm_smooth.m 4172 2011-01-26 12:13:29Z guillaume $
 
 
 %-----------------------------------------------------------------------
-if length(s) == 1; s = [s s s]; end
+if numel(s) == 1, s = [s s s]; end
 if nargin < 4, dtype = 0; end;
 
 if ischar(P), P = spm_vol(P); end;

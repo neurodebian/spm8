@@ -20,14 +20,14 @@ function DCM = spm_dcm_erp(DCM)
 %   options.h            - number of DCT drift terms (usually 1 or 2)
 %   options.Nmodes       - number of spatial models to invert
 %   options.analysis     - 'ERP', 'SSR' or 'IND'
-%   options.model        - 'ERP', 'SEP', NMM or 'MFM'
+%   options.model        - 'ERP', 'SEP', 'CMC', 'NMM' or 'MFM'
 %   options.spatial      - 'ERP', 'LFP' or 'IMG'
 %   options.onset        - stimulus onset (ms)
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_dcm_erp.m 3653 2009-12-23 20:06:48Z karl $
+% $Id: spm_dcm_erp.m 4281 2011-03-31 19:49:57Z karl $
 
 % check options
 %==========================================================================
@@ -37,15 +37,17 @@ name = sprintf('DCM_%s',date);
 
 % Filename and options
 %--------------------------------------------------------------------------
-try, DCM.name;                   catch, DCM.name  = name;        end
-try, DCM.xU;                     catch, DCM.xU.X  = sparse(1,0); end
-try, h     = DCM.options.h;      catch, h         = 1;           end
-try, Nm    = DCM.options.Nmodes; catch, Nm        = 8;           end
-try, onset = DCM.options.onset;  catch, onset     = 60;          end
-try, model = DCM.options.model;  catch, model     = 'NMM';       end
-try, lock  = DCM.options.lock;   catch, lock      = 0;           end
+try, DCM.name;                      catch, DCM.name  = name;        end
+try, DCM.xU;                        catch, DCM.xU.X  = sparse(1,0); end
+try, h     = DCM.options.h;         catch, h         = 1;           end
+try, Nm    = DCM.options.Nmodes;    catch, Nm        = 8;           end
+try, onset = DCM.options.onset;     catch, onset     = 60;          end
+try, model = DCM.options.model;     catch, model     = 'NMM';       end
+try, lock  = DCM.options.lock;      catch, lock      = 0;           end
+try, symm  = DCM.options.symmetry;  catch, symm      = 0;           end
 
-
+if ~strcmp(DCM.options.spatial,'ECD'), symm = 0; end
+    
 
 
 % Data and spatial model (use h only for de-trending data)
@@ -132,33 +134,29 @@ try
     end
 end
 
-% lock experimental effects by introducing prior correlations
-%--------------------------------------------------------------------------
-if lock
-    pV    = spm_unvec(diag(pC),pE);
-    for i = 1:Nx
-        pB      = pV;
-        pB.B{i} = pB.B{i} - pB.B{i};
-        pB      = spm_vec(pV)  - spm_vec(pB);
-        pB      = sqrt(pB*pB') - diag(pB);
-        pC      = pC + pB;
-    end
-end
-
 % priors on spatial model
 %--------------------------------------------------------------------------
 M.dipfit.model = model;
 [gE,gC] = spm_L_priors(M.dipfit);
+
+% Set prior correlations (locking trial effects and dipole orientations
+%--------------------------------------------------------------------------
+if lock, pC = spm_dcm_lock(pC);    end
+if symm, gC = spm_dcm_symm(gC,gE); end
 
 
 % intial states and equations of motion
 %--------------------------------------------------------------------------
 [x,f] = spm_dcm_x_neural(pE,model);
 
+% hyperpriors (assuming about 99% signal to noise)
+%--------------------------------------------------------------------------
+hE    = 4 - log(var(spm_vec(xY.y)));
+hC    = exp(-8);
+
 
 % likelihood model
 %--------------------------------------------------------------------------
-M.IS  = 'spm_gen_erp_dfdp';                            % for fast inversion
 M.IS  = 'spm_gen_erp';
 M.FS  = 'spm_fy_erp';
 M.G   = 'spm_lx_erp';
@@ -168,6 +166,8 @@ M.pE  = pE;
 M.pC  = pC;
 M.gE  = gE;
 M.gC  = gC;
+M.hE  = hE;
+M.hC  = hC;
 M.m   = Nu;
 M.n   = length(spm_vec(M.x));
 M.l   = Nc;
@@ -191,7 +191,6 @@ else
     M.E   = U;
 end
 Nm    = size(U,2);
-
 
 % EM: inversion
 %==========================================================================
@@ -246,6 +245,7 @@ DCM.Ep = Qp;                   % conditional expectation f(x,u,p)
 DCM.Cp = Cp;                   % conditional covariances G(g)
 DCM.Eg = Qg;                   % conditional expectation
 DCM.Cg = Cg;                   % conditional covariances
+DCM.Ce = Ce;                   % conditional error
 DCM.Pp = Pp;                   % conditional probability
 DCM.H  = y;                    % conditional responses (y), projected space
 DCM.K  = x;                    % conditional responses (x)
@@ -260,6 +260,8 @@ DCM.options.Nmodes = Nm;
 DCM.options.onset  = onset;
 DCM.options.model  = model;
 DCM.options.lock   = lock;
+DCM.options.symm   = symm;
+
 
 % store estimates in D
 %--------------------------------------------------------------------------
@@ -318,23 +320,24 @@ if strcmp(M.dipfit.type,'IMG')
 
     % fill in fields of inverse structure
     %----------------------------------------------------------------------
-    inverse.trials = DCM.options.trials;   % trial or condition
-    inverse.type   = 'DCM';                % inverse model
-    inverse.J      = J;                    % Conditional expectation
-    inverse.L      = L;                    % Lead field (reduced)
-    inverse.R      = speye(Nc,Nc);         % Re-referencing matrix
-    inverse.T      = T0;                   % temporal subspace
-    inverse.U      = U;                    % spatial subspace
-    inverse.Is     = Is;                   % Indices of active dipoles
-    inverse.It     = DCM.xY.It;            % Indices of time bins
-    inverse.Ic     = DCM.xY.Ic;            % Indices of good channels
-    inverse.Y      = Y;                    % reduced data
-    inverse.Nd     = Nd;                   % number of dipoles
-    inverse.Nt     = Nt;                   % number of trials
-    inverse.pst    = xY.pst;               % peri-stimulus time
-    inverse.F      = DCM.F;                % log-evidence
-    inverse.R2     = R2;                   % variance accounted for (%)
-    inverse.dipfit = M.dipfit;             % forward model for DCM
+    inverse.trials   = DCM.options.trials;   % trial or condition
+    inverse.modality = {DCM.xY.modality};    % modality
+    inverse.type     = 'DCM';                % inverse model
+    inverse.J        = J;                    % Conditional expectation
+    inverse.L        = L;                    % Lead field (reduced)
+    inverse.R        = speye(Nc,Nc);         % Re-referencing matrix
+    inverse.T        = T0;                   % temporal subspace
+    inverse.U        = U;                    % spatial subspace
+    inverse.Is       = Is;                   % Indices of active dipoles
+    inverse.It       = DCM.xY.It;            % Indices of time bins
+    inverse.Ic       = DCM.xY.Ic;            % Indices of good channels
+    inverse.Y        = Y;                    % reduced data
+    inverse.Nd       = Nd;                   % number of dipoles
+    inverse.Nt       = Nt;                   % number of trials
+    inverse.pst      = xY.pst;               % peri-stimulus time
+    inverse.F        = DCM.F;                % log-evidence
+    inverse.R2       = R2;                   % variance accounted for (%)
+    inverse.dipfit   = M.dipfit;             % forward model for DCM
 
     % append DCM results and save in structure
     %----------------------------------------------------------------------
@@ -353,6 +356,10 @@ end
 
 % and save
 %--------------------------------------------------------------------------
-save(DCM.name,  'DCM');
-assignin('base','DCM',DCM)
+try
+    save(DCM.name,'DCM');
+catch
+    save(name,    'DCM');
+end
+assignin('base',  'DCM',DCM)
 return

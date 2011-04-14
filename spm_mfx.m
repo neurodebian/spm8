@@ -71,9 +71,9 @@ function [SPM] = spm_mfx(SPM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_mfx.m 3665 2010-01-08 13:07:41Z guillaume $
+% $Id: spm_mfx.m 4185 2011-02-01 18:46:18Z guillaume $
 
-SVNid = '$Rev: 3665 $';
+SVNid = '$Rev: 4185 $';
 
 %-Say hello
 %--------------------------------------------------------------------------
@@ -90,7 +90,14 @@ try
 catch
     error('This model has not been estimated.');
 end
-    
+
+%-Change to SPM.swd
+%--------------------------------------------------------------------------
+try
+    cd(swd);
+end
+ 
+
 %-Check this is a repeated measures design
 %--------------------------------------------------------------------------
 n     = length(SPM.Sess);            % number of sessions
@@ -160,7 +167,7 @@ fprintf('%-40s: %30s\n','Mixed-Effect Model','...ReML estimation');     %-#
 spm('FigName','Stats: MFX-ReML',Finter); spm('Pointer','Watch')
 
 xsDes.Design = '2nd-level MFX analysis';
-xsDes.Name   = xCon.name;
+xsDes.Name   = xCon(I).name;
 S.xsDes      = xsDes;       % description
 
 
@@ -256,13 +263,13 @@ S.xVol    = SPM.xVol;
 %-Change to SPM.swd/mfx and save analysis parameters in SPM.mat file
 %--------------------------------------------------------------------------
 SPM       = S;
-[st, me]  = mkdir('mfx');
+SPM.swd   = fullfile(swd,'mfx');
+[st, me]  = mkdir(SPM.swd);
 if st
-    SPM.swd = fullfile(swd,'mfx');
-    if spm_matlab_version_chk('7') >= 0,
-        save(fullfile(SPM.swd,'SPM'), 'SPM', '-V6');
+    if spm_check_version('matlab','7') >= 0,
+        save(fullfile(SPM.swd,'SPM.mat'), 'SPM', '-V6');
     else
-        save(fullfile(SPM.swd,'SPM'), 'SPM');
+        save(fullfile(SPM.swd,'SPM.mat'), 'SPM');
     end
 else
     error('Could not save SPM.mat in mfx: %s', me)

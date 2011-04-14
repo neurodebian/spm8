@@ -281,9 +281,9 @@ function [SPM] = spm_spm(SPM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Andrew Holmes, Jean-Baptiste Poline & Karl Friston
-% $Id: spm_spm.m 3960 2010-06-30 17:41:24Z ged $
+% $Id: spm_spm.m 4191 2011-02-03 13:30:02Z guillaume $
  
-SVNid     = '$Rev: 3960 $';
+SVNid     = '$Rev: 4191 $';
  
 %-Say hello
 %--------------------------------------------------------------------------
@@ -333,7 +333,9 @@ if exist(fullfile(SPM.swd,'mask.img'),'file') == 2
         return
     else
         warning('Overwriting old results\n\t (pwd = %s) ',SPM.swd);
-        try, SPM = rmfield(SPM,'xVol'); end
+        try, SPM     = rmfield(SPM,     'xVol'); end
+        try, SPM.xX  = rmfield(SPM.xX,  'W');    end
+        try, SPM.xVi = rmfield(SPM.xVi, 'V');    end
     end
 end
  
@@ -441,28 +443,32 @@ xX.xKXs.X = full(xX.xKXs.X);
 xX.pKX    = spm_sp('x-',xX.xKXs);                        % projector
 erdf      = spm_SpUtil('trRV',xX.xKXs);                  % Working error df
  
-%-If xVi.V is not defined compute Hsqr and F-threshold under i.i.d.
+%-Compute Hsqr and F-threshold under i.i.d.
 %--------------------------------------------------------------------------
-if ~isfield(xVi,'V')
-    
+if isfield(xVi,'Fcontrast')
+    Fcname = 'User-specified contrast';
+    xCon   = spm_FcUtil('Set',Fcname,'F','c',xVi.Fcontrast,xX.xKXs);
+else
     Fcname = 'effects of interest';
     iX0    = [SPM.xX.iB SPM.xX.iG];
     xCon   = spm_FcUtil('Set',Fcname,'F','iX0',iX0,xX.xKXs);
-    X1o    = spm_FcUtil('X1o', xCon(1),xX.xKXs);
-    Hsqr   = spm_FcUtil('Hsqr',xCon(1),xX.xKXs);
-    trRV   = spm_SpUtil('trRV',xX.xKXs);
-    trMV   = spm_SpUtil('trMV',X1o);
- 
-    % Threshold for voxels entering non-sphericity estimates
-    %----------------------------------------------------------------------
-    try
-        modality = lower(spm_get_defaults('modality'));
-        UFp      = spm_get_defaults(['stats.' modality '.ufp']);
-    catch
-        UFp      = 0.001;
-    end
-    UF           = spm_invFcdf(1 - UFp,[trMV,trRV]);
 end
+
+X1o    = spm_FcUtil('X1o', xCon(1),xX.xKXs);
+Hsqr   = spm_FcUtil('Hsqr',xCon(1),xX.xKXs);
+trRV   = spm_SpUtil('trRV',xX.xKXs);
+trMV   = spm_SpUtil('trMV',X1o);
+
+% Threshold for voxels entering non-sphericity estimates and prior for PPM
+%----------------------------------------------------------------------
+try
+    modality = lower(spm_get_defaults('modality'));
+    UFp      = spm_get_defaults(['stats.' modality '.ufp']);
+catch
+    UFp      = 0.001;
+end
+xVi.UFp      = UFp;
+UF           = spm_invFcdf(1 - UFp,[trMV,trRV]);
  
 %-Image dimensions and data
 %==========================================================================
@@ -713,17 +719,23 @@ for z = 1:nbz:zdim                       %-loop over planes (2D or 3D data)
             %--------------------------------------------------------------
             if isfield(xX,'W')
  
+                j   = sum((Hsqr*beta).^2,1)/trMV > UF*ResSS/trRV;
+                j   = find(j);
+                
                 %-sample covariance and mean of Y (all voxels)
                 %----------------------------------------------------------
-                CY         = CY + Y*Y';
-                EY         = EY + sum(Y,2);
- 
+                if ~isempty(j)
+                    Y          = Y(:,j);
+                    CY         = CY + Y*Y';
+                    EY         = EY + sum(Y,2);
+                end
+                
                 %-Save betas etc. for current plane as we go along
                 %----------------------------------------------------------
                 CrBl       = [CrBl,    beta];
                 CrResI     = [CrResI,  res(i_res,:)];
                 CrResSS    = [CrResSS, ResSS];
- 
+                
             end % (xX,'W')
             clear Y                         %-Clear to save memory
  
@@ -802,18 +814,14 @@ if ~isfield(xVi,'V')
     if s == 0
         spm('FigName','Stats: no significant voxels',Finter); 
         spm('Pointer','Arrow');
-        if isfield(SPM.xGX,'rg')&&~isempty(SPM.xGX.rg)
+        if isfield(SPM.xGX,'rg') && ~isempty(SPM.xGX.rg) && ~spm('CmdLine')
             figure(Finter);
             plot(SPM.xGX.rg);
-            spm('alert*',{'Please check your data'; ...
-                'There are no significant voxels';...
-                'The globals are plotted for diagnosis'});
-        else
-            spm('alert*',{'Please check your data'; ...
-                'There are no significant voxels'});
+            title('global mean per volume image');
         end
-        warning('Please check your data: There are no significant voxels.');
-        return
+        spm('alert*',{'Please check your data'; ...
+            'There are no significant voxels'});
+        error('Please check your data: There are no significant voxels.');
     end
  
     %-ReML estimate of residual correlations through hyperparameters (h)
@@ -871,13 +879,13 @@ if ~isfield(xVi,'V')
     % If xX.W is not specified use W*W' = inv(V) to give ML estimators
     %----------------------------------------------------------------------
     if ~isfield(xX,'W')
-        if spm_matlab_version_chk('7') >=0
-            save('SPM','SPM','-V6');
+        if spm_check_version('matlab','7') >=0
+            save('SPM.mat','SPM','-V6');
         else
-            save('SPM','SPM');
+            save('SPM.mat','SPM');
         end
         clear
-        load SPM
+        load('SPM.mat');
         SPM = spm_spm(SPM);
         return
     end
@@ -898,7 +906,18 @@ xX.Bcov         = xX.pKX*xX.V*xX.pKX';                      % Cov(beta)
 %--------------------------------------------------------------------------
 VResMS.pinfo(1) = 1/xX.trRV;
 VResMS          = spm_create_vol(VResMS);
- 
+
+%-Modify ResMS (a form of shrinkage) to avoid problems of very low variance
+%--------------------------------------------------------------------------
+try
+    if ~strcmpi(spm_get_defaults('modality'),'fmri')
+        ResMS = spm_read_vols(VResMS);
+        ResMS = ResMS + 1e-3 * max(ResMS(isfinite(ResMS)));
+        spm_write_vol(VResMS, ResMS);
+        clear ResMS
+    end
+end
+
 %-Smoothness estimates of component fields and RESEL counts for volume
 %==========================================================================
 try
@@ -956,10 +975,10 @@ SPM.swd        = pwd;
  
 %-Save analysis parameters in SPM.mat file
 %--------------------------------------------------------------------------
-if spm_matlab_version_chk('7') >=0
-    save('SPM','SPM','-V6');
+if spm_check_version('matlab','7') >=0
+    save('SPM.mat','SPM','-V6');
 else
-    save('SPM','SPM');
+    save('SPM.mat','SPM');
 end
  
 %==========================================================================

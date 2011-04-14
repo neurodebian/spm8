@@ -22,7 +22,7 @@ function varargout = DEM_demo(varargin)
 
 % Edit the above text to modify the response to help DEM_demo
 
-% Last Modified by GUIDE v2.5 26-May-2010 19:20:30
+% Last Modified by GUIDE v2.5 04-Mar-2011 21:40:03
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -247,4 +247,109 @@ run_demo_Callback(hObject, handles, 'ADEM_writing')
 % --- Executes on button press in pushbutton96.
 function pushbutton96_Callback(hObject, eventdata, handles)
 run_demo_Callback(hObject, handles, 'ADEM_observe')
+
+% --- Executes on button press in pushbutton97.
+function pushbutton97_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_DCM_LAP')
+
+% --- Executes on button press in pushbutton98.
+function pushbutton98_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_convolution_LAP')
+
+% --- Executes on button press in pushbutton99.
+function pushbutton99_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_lorenz_LAP')
+
+% --- Executes on button press in pushbutton100.
+function pushbutton100_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_doublewell_LAP')
+
+% --- Executes on button press in pushbutton101.
+function pushbutton101_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_hdm_SCK')
+
+% --- Executes on button press in pushbutton102.
+function pushbutton102_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'ADEM_writing')
+
+% --- Executes on button press in pushbutton103.
+function pushbutton103_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_dendrite')
+
+% --- Executes on button press in pushbutton104.
+function pushbutton104_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_Cornsweet')
+
+% --- Executes on button press in pushbutton105.
+function pushbutton105_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'ADEM_pursuit')
+
+% --- Executes on button press in pushbutton117.
+function pushbutton117_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'ADEM_cued_response')
+
+% --- Executes on button press in pushbutton118.
+function pushbutton118_Callback(hObject, eventdata, handles)
+run_demo_Callback(hObject, handles, 'DEM_demo_MMN_deviance')
+
+% --- Executes on button press in pushbutton119.
+function pushbutton119_Callback(hObject, eventdata, handles)
+% hObject    handle to pushbutton119 (see GCBO)
+run_demo_Callback(hObject, handles, 'DEM_demo_contact_lens')
+
+
+
+
+% PDF callbacks
+%--------------------------------------------------------------------------
+
+% --- Executes on button press in pushbutton107.
+function pushbutton107_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Action_and_behavior_A_free-energy_formulation.pdf']);
+
+% --- Executes on button press in pushbutton108.
+function pushbutton108_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Variational_free_energy_and_the_Laplace_approximation.pdf']);
+
+% --- Executes on button press in pushbutton109.
+function pushbutton109_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Hierarchical_Models_in_the_Brain.pdf']);
+
+% --- Executes on button press in pushbutton110.
+function pushbutton110_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Friston_MathProblEngin_2010_621670.pdf']);
+
+% --- Executes on button press in pushbutton111.
+function pushbutton111_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Variational_filtering.pdf']);
+
+% --- Executes on button press in pushbutton112.
+function pushbutton112_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Cortical_circuits_for_perceptual_inference.pdf']);
+
+% --- Executes on button press in pushbutton113.
+function pushbutton113_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Reinforcement_Learning_or_Active_Inference.pdf']);
+
+% --- Executes on button press in pushbutton114.
+function pushbutton114_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'karl_nonlinear.pdf']);
+
+% --- Executes on button press in pushbutton115.
+function pushbutton115_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+    'Attention_uncertainty_and_free-energy.pdf']);
+
+% --- Executes on button press in pushbutton116.
+function pushbutton116_Callback(hObject, eventdata, handles)
+web(['http://www.fil.ion.ucl.ac.uk/spm/doc/papers/', ...
+'DEM_A_variational_treatment_of_dynamic_systems.pdf']);
 

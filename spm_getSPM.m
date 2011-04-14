@@ -182,7 +182,7 @@ function [SPM,xSPM] = spm_getSPM(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes, Karl Friston & Jean-Baptiste Poline
-% $Id: spm_getSPM.m 3980 2010-07-08 15:55:37Z karl $
+% $Id: spm_getSPM.m 4225 2011-03-02 15:53:05Z guillaume $
 
 
 %-GUI setup
@@ -224,7 +224,7 @@ cd(SPM.swd);
 %-Check the model has been estimated
 %--------------------------------------------------------------------------
 try
-    SPM.xVol.XYZ;
+    SPM.xVol.S;
 catch
     
     %-Check the model has been estimated
@@ -245,15 +245,6 @@ S    = SPM.xVol.S;                  %-search Volume {voxels}
 R    = SPM.xVol.R;                  %-search Volume {resels}
 M    = SPM.xVol.M(1:3,1:3);         %-voxels to mm matrix
 VOX  = sqrt(diag(M'*M))';           %-voxel dimensions
-
-% check the data and other files have valid filenames
-%--------------------------------------------------------------------------
-try, SPM.xY.VY     = spm_check_filename(SPM.xY.VY);     end
-try, SPM.xVol.VRpv = spm_check_filename(SPM.xVol.VRpv); end
-try, SPM.Vbeta     = spm_check_filename(SPM.Vbeta);     end
-try, SPM.VResMS    = spm_check_filename(SPM.VResMS);    end
-try, SPM.VM        = spm_check_filename(SPM.VM);        end
-
 
 %==========================================================================
 % - C O N T R A S T S ,   S P M    C O M P U T A T I O N ,    M A S K I N G
@@ -497,15 +488,11 @@ if isfield(SPM,'PPM')
     
     % Set Bayesian con type
     %----------------------------------------------------------------------
-    if length(SPM.PPM.xCon) < Ic
-        SPM.PPM.xCon(Ic).PSTAT = xCon(Ic).STAT;
-    end
+    SPM.PPM.xCon(Ic).PSTAT = xCon(Ic).STAT;
     
-    % Make this one a Bayesian contrast - if first level
+    % Make all new contrasts Bayesian contrasts 
     %----------------------------------------------------------------------
-    if isfield(SPM.PPM,'VB')
-        [xCon(Ic).STAT] = deal('P');
-    end
+    [xCon(Ic).STAT] = deal('P');
     
     if all(strcmp([SPM.PPM.xCon(Ic).PSTAT],'T'))
         
@@ -773,15 +760,15 @@ Z      = Z(:,Q);
 XYZ    = XYZ(:,Q);
 if isempty(Q)
     fprintf('\n');                                                      %-#
-    warning('SPM:NoVoxels','No voxels survive masking at p=%4.2f',pm);
+    warning('SPM:NoVoxels','No voxels survive height threshold at u=%0.2g',u);
 end
 
 
-%-Extent threshold (disallowed for conjunctions)
+%-Extent threshold
 %--------------------------------------------------------------------------
-if ~isempty(XYZ) && nc == 1
+if ~isempty(XYZ)
     
-    fprintf('%s%30s',repmat(sprintf('\b'),1,30),'...extent threshold')  %-#
+    fprintf('%s%30s',repmat(sprintf('\b'),1,30),'...extent threshold'); %-#
     
     %-Get extent threshold [default = 0]
     %----------------------------------------------------------------------
@@ -797,7 +784,7 @@ if ~isempty(XYZ) && nc == 1
     Q     = [];
     for i = 1:max(A)
         j = find(A == i);
-        if length(j) >= k; Q = [Q j]; end
+        if length(j) >= k, Q = [Q j]; end
     end
     
     % ...eliminate voxels
@@ -806,7 +793,7 @@ if ~isempty(XYZ) && nc == 1
     XYZ   = XYZ(:,Q);
     if isempty(Q)
         fprintf('\n');                                                  %-#
-        warning('SPM:NoVoxels','No voxels survive masking at p=%4.2f',pm);
+        warning('SPM:NoVoxels','No voxels survive extent threshold at k=%0.2g',k);
     end
     
 else

@@ -73,12 +73,26 @@ function [Ep,Cp,Eh,F] = spm_nlsi_GN(M,U,Y)
 % invoked.  The M-Step estimates the precision components of e, in terms
 % of [Re]ML point estimators of the log-precisions.
 %
-% An optional feature selection can be specified with parameters M.FS
+% An optional feature selection can be specified with parameters M.FS.
+%
+% For generic aspects of the scheme see:
+% 
+% Friston K, Mattout J, Trujillo-Barreto N, Ashburner J, Penny W. 
+% Variational free energy and the Laplace approximation. 
+% NeuroImage. 2007 Jan 1;34(1):220-34.
+% 
+% This scheme handels complex data along the lines originally described in:
+% 
+% Sehpard RJ, Lordan BP, and Grant EH. 
+% Least squares analysis of complex data with applications to permittivity
+% measurements.
+% J. Phys. D. Appl. Phys 1970 3:1759-1764.
+%
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_nlsi_GN.m 3812 2010-04-07 16:52:05Z karl $
+% $Id: spm_nlsi_GN.m 4261 2011-03-24 16:39:42Z karl $
  
 % figure (unless disabled)
 %--------------------------------------------------------------------------
@@ -101,24 +115,24 @@ end
  
 % composition of feature selection and prediction (usually an integrator)
 %--------------------------------------------------------------------------
-if isfield(M,'FS')
+try
     
-    % FS(y,M)
+    % try FS(y,M)
     %----------------------------------------------------------------------
     try
         y  = feval(M.FS,Y.y,M);
         IS = inline([M.FS '(' M.IS '(P,M,U),M)'],'P','M','U');
         
-    % FS(y,M)
+    % try FS(y)
     %----------------------------------------------------------------------
     catch
         y  = feval(M.FS,Y.y);
         IS = inline([M.FS '(' M.IS '(P,M,U))'],'P','M','U');
- 
     end
-else
     
-    % FS(y) = y
+catch
+    
+    % otherwise FS(y) = y
     %----------------------------------------------------------------------
     y   = Y.y;
     IS  = inline([M.IS '(P,M,U)'],'P','M','U');
@@ -179,7 +193,7 @@ end
 nh    = length(Q);                  % number of precision components
 nt    = length(Q{1});               % number of time bins
 nq    = nr*ns/nt;                   % for compact Kronecker form of M-step
-h     = zeros(nh,1);                % initialise hyperparameters
+h     = sparse(nh,1);                % initialise hyperparameters
  
 % prior moments
 %--------------------------------------------------------------------------
@@ -200,25 +214,38 @@ end
 %--------------------------------------------------------------------------
 try
     hE = M.hE;
+    if length(hE) ~= nh
+        hE = hE(1) + sparse(nh,1);
+    end
 catch
     hE = sparse(nh,1);
 end
+h      = hE;
  
 % hyperpriors - covariance
 %--------------------------------------------------------------------------
 try
     ihC = inv(M.hC);
+    if length(ihC) ~= nh
+        ihC = ihC*speye(nh,nh);
+    end
 catch
-    ihC = eye(nh,nh);
+    ihC = speye(nh,nh);
 end
  
+% unpack covariance
+%--------------------------------------------------------------------------
+if isstruct(pC);
+    pC = spm_diag(spm_vec(pC));
+end
+
 % dimension reduction of parameter space
 %--------------------------------------------------------------------------
 V     = spm_svd(pC,exp(-32));
 nu    = size(dfdu,2);                 % number of parameters (confounds)
 np    = size(V,2);                    % number of parameters (effective)
-ip    = [1:np]';
-iu    = [1:nu]' + np;
+ip    = (1:np)';
+iu    = (1:nu)' + np;
  
 % second-order moments (in reduced space)
 %--------------------------------------------------------------------------
@@ -235,15 +262,17 @@ Ep    = spm_unvec(spm_vec(pE) + V*p(ip),pE);
  
 % EM
 %==========================================================================
+criterion = [0 0 0 0];
+
 C.F   = -Inf;                                   % free energy
-v     = 0;                                      % log ascent rate
+v     = -2;                                     % log ascent rate
 dFdh  = zeros(nh,1);
 dFdhh = zeros(nh,nh);
-for k = 1:64
+for k = 1:128
     
     % time
     %----------------------------------------------------------------------  
-    tic;
+    tStart = tic;
  
     % M-Step: ReML estimator of variance components:  h = max{F(p,h)}
     %======================================================================
@@ -255,8 +284,8 @@ for k = 1:64
        
     % prediction error and full gradients
     %----------------------------------------------------------------------
-    e     = spm_vec(y) - spm_vec(f) - dfdu*p(iu);
-    dfdp  = reshape(spm_vec(dfdp),ns*nr,np);
+    e     =  spm_vec(y) - spm_vec(f) - dfdu*p(iu);
+    dfdp  =  reshape(spm_vec(dfdp),ns*nr,np);
     J     = -[dfdp dfdu];
     
  
@@ -270,45 +299,50 @@ for k = 1:64
         
         % precision and conditional covariance
         %------------------------------------------------------------------
-        iS    = 0;
+        iS    = sparse(0);
         for i = 1:nh
-            iS = iS + Q{i}*exp(h(i));
+            iS = iS + Q{i}*(exp(-32) + exp(h(i)));
         end
-        S     = inv(iS);
+        S     = spm_inv(iS);
         iS    = kron(speye(nq),iS);
-        Cp    = spm_inv(J'*iS*J + ipC);
-        
+        Pp    = real(J)'*iS*real(J) + imag(J)'*iS*imag(J);
+        Cp    = spm_inv(Pp + ipC);
+        if any(isnan(Cp(:))) || rcond(full(Cp)) < exp(-32), break, end
  
         % precision operators for M-Step
         %------------------------------------------------------------------
         for i = 1:nh
-            P{i}  = Q{i}*exp(h(i));
-            PS{i} = P{i}*S;
-            P{i}  = kron(speye(nq),P{i});
+            P{i}   = Q{i}*exp(h(i));
+            PS{i}  = P{i}*S;
+            P{i}   = kron(speye(nq),P{i});
+            JPJ{i} = real(J)'*P{i}*real(J) + ...
+                     imag(J)'*P{i}*imag(J);
         end
-            
-            
+                    
         % derivatives: dLdh = dL/dh,...
         %------------------------------------------------------------------
         for i = 1:nh
-            dFdh(i,1)      =  trace(PS{i})*nq/2 - e'*P{i}*e/2 ...
-                             -sum(sum(Cp.*(J'*P{i}*J)))/2;
+            dFdh(i,1)      =   trace(PS{i})*nq/2 ...
+                             - real(e)'*P{i}*real(e)/2 ...
+                             - imag(e)'*P{i}*imag(e)/2 ...
+                             - sum(sum(Cp.*JPJ{i}))/2;
             for j = i:nh
-                dFdhh(i,j) = -sum(sum(PS{i}.*PS{j}))*nq/2;
-                dFdhh(j,i) =  dFdhh(i,j);
+                dFdhh(i,j) = - sum(sum(PS{i}.*PS{j}))*nq/2;
+                dFdhh(j,i) =   dFdhh(i,j);
             end
         end
         
         % add hyperpriors
         %------------------------------------------------------------------
-        d     = h - hE;
+        d     = h     - hE;
         dFdh  = dFdh  - ihC*d;
         dFdhh = dFdhh - ihC;
-        Ch    = inv(-dFdhh); 
+        Ch    = spm_inv(-dFdhh); 
         
         % update ReML estimate
         %------------------------------------------------------------------
-        dh    = spm_dx(dFdhh,dFdh,{8});
+        dh    = spm_dx(dFdhh,dFdh,{4});
+        dh    = min(max(dh,-1),1);
         h     = h  + dh;
  
         % convergence
@@ -317,13 +351,15 @@ for k = 1:64
         if dF < 1e-2, break, end
  
     end
- 
+
+    
     % E-Step with Levenberg-Marquardt regularization
     %======================================================================
  
     % objective function: F(p) (= log evidence - divergence)
     %----------------------------------------------------------------------
-    F = - e'*iS*e/2 ...
+    F = - real(e)'*iS*real(e)/2 ...
+        - imag(e)'*iS*imag(e)/2 ...
         - p'*ipC*p/2 ...
         - d'*ihC*d/2 ...
         - ns*nr*log(8*atan(1))/2 ...
@@ -335,7 +371,7 @@ for k = 1:64
     %----------------------------------------------------------------------
     try
         F0; 
-        fprintf(' actual: %.3e (%.2f sec)\n',full(F - C.F),toc)
+        fprintf(' actual: %.3e (%.2f sec)\n',full(F - C.F),toc(tStart))
     catch
         F0 = F;
     end
@@ -353,8 +389,10 @@ for k = 1:64
         
         % E-Step: Conditional update of gradients and curvature
         %------------------------------------------------------------------
-        dFdp  = -J'*iS*e - ipC*p;
-        dFdpp = -J'*iS*J - ipC;
+        dFdp  = -real(J)'*iS*real(e) ...
+                -imag(J)'*iS*imag(e) - ipC*p;
+        dFdpp = -real(J)'*iS*real(J) ...
+                -imag(J)'*iS*imag(J) - ipC;
         
         % decrease regularization
         %------------------------------------------------------------------
@@ -393,7 +431,7 @@ for k = 1:64
         % subplot prediction
         %------------------------------------------------------------------
         figure(Fsi)
-        x    = [1:ns]*Y.dt;
+        x    = (1:ns)*Y.dt;
         xLab = 'time (seconds)';
         try
             if length(M.Hz) == ns
@@ -402,13 +440,35 @@ for k = 1:64
             end
         end
         
-        subplot(2,1,1)
-        plot(x,f), hold on
-        plot(x,f + spm_unvec(e,f),':'), hold off
-        xlabel(xLab)
-        title(sprintf('%s: %i','prediction and response: E-Step',k))
-        grid on
- 
+        if isreal(f)
+            
+            subplot(2,1,1)
+            plot(x,f), hold on
+            plot(x,f + spm_unvec(e,f),':'), hold off
+            xlabel(xLab)
+            title(sprintf('%s: %i','prediction and response: E-Step',k))
+            grid on
+            
+        else
+            
+            subplot(2,2,1)
+            plot(x,real(f)), hold on
+            plot(x,real(f + spm_unvec(e,f)),':'), hold off
+            xlabel(xLab)
+            ylabel('real')
+            title(sprintf('%s: %i','prediction and response: E-Step',k))
+            grid on
+            
+            subplot(2,2,2)
+            plot(x,imag(f)), hold on
+            plot(x,imag(f + spm_unvec(e,f)),':'), hold off
+            xlabel(xLab)
+            ylabel('imaginary')
+            title(sprintf('%s: %i','prediction and response: E-Step',k))
+            grid on
+            
+        end
+        
         % subplot parameters
         %------------------------------------------------------------------
         subplot(2,1,2)
@@ -424,10 +484,9 @@ for k = 1:64
     %----------------------------------------------------------------------
     dF  = dFdp'*dp;
     fprintf('%-6s: %i %6s %-6.3e %6s %.3e ',str,k,'F:',full(C.F - F0),'dF predicted:',full(dF))
-    if k > 2 && dF < 1e-2
-        fprintf(' convergence\n')
-        break
-    end
+    
+    criterion = [(dF < 1e-2) criterion(1:end - 1)];
+    if all(criterion), fprintf(' convergence\n'), break, end
  
 end
  

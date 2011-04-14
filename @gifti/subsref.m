@@ -4,13 +4,14 @@ function varargout = subsref(this,subs)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Guillaume Flandin
-% $Id: subsref.m 3999 2010-07-19 10:54:18Z guillaume $
+% $Id: subsref.m 4136 2010-12-09 22:22:28Z guillaume $
 
-if length(this) > 1
+if length(this) > 1 && ~strcmp(subs(1).type,'()')
     warning('Not implemented.');
     for i=1:numel(this)
         varargout{i} = subsref(this(i),subs);
     end
+    return;
 end
 
 switch subs(1).type

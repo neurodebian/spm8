@@ -55,7 +55,7 @@ function [C,P,F] = spm_PEB(y,P,OPT)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_PEB.m 1143 2008-02-07 19:33:33Z spm $
+% $Id: spm_PEB.m 4283 2011-04-01 16:53:36Z karl $
 
 % set default
 %--------------------------------------------------------------------------
@@ -76,7 +76,7 @@ for i = 1:p
     if ~isfield(P{i},'C')
         [n m] = size(P{i}.X);
         if i == 1
-            P{i}.C            = {speye(n,n)};
+            P{i}.C  = {speye(n,n)};
         else
             for j = 1:m
                 k         = find(P{i}.X(:,j));
@@ -107,8 +107,8 @@ for i = 1:p
     % indices for ith level parameters
     %----------------------------------------------------------------------
     [n m] = size(P{i}.X);
-    I{i}  = [1:n] + I{end}(end);
-    J{i}  = [1:m] + J{end}(end);
+    I{i}  = (1:n) + I{end}(end);
+    J{i}  = (1:m) + J{end}(end);
 
 end
 
@@ -241,7 +241,7 @@ for k = 1:M
             Ce = Ce + Q{i}*h(i);
         end
     end
-    iC    = spm_inv(Ce);
+    iC    = spm_inv(Ce,exp(-16));
 
     % E-step: conditional mean E{B|y} and covariance cov(B|y)
     %======================================================================
@@ -298,7 +298,8 @@ for k = 1:M
     % Convergence
     %======================================================================
     w     = norm(dh,1);
-%     fprintf('%-30s: %i %30s%e\n','  PEB Iteration',k,'...',full(w));
+    
+    % fprintf('%-30s: %i %30s%e\n','  PEB Iteration',k,'...',full(w));
     
     % if dF < 0.01
     %----------------------------------------------------------------------
@@ -361,12 +362,4 @@ end
 % warning
 %--------------------------------------------------------------------------
 if k == M, warning('maximum number of iterations exceeded'), end
-
-return
-
-function [C] = spm_inv(C);
-% inversion of sparse matrices
-%__________________________________________________________________________
-
-C  = inv(C + speye(length(C))*exp(-32));
 

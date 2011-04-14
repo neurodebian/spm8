@@ -6,7 +6,7 @@ function varargout = spm_api_erp(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_api_erp.m 3846 2010-04-27 17:25:13Z vladimir $
+% $Id: spm_api_erp.m 4232 2011-03-07 21:01:16Z karl $
  
 if nargin == 0 || nargin == 1  % LAUNCH GUI
  
@@ -68,6 +68,7 @@ end
 % Type of analysis
 %--------------------------------------------------------------------------
 % 'ERP'    - Event related responses
+% 'CSD'    - Cross-spectral density
 % 'SSR'    - Steady-state responses
 % 'IND'    - Induced responses
 % 'PHA'    - (for phase coupling)
@@ -81,6 +82,7 @@ catch
 end
 switch model
     case{'ERP'}, set(handles.ERP,'Value',1);
+    case{'CSD'}, set(handles.ERP,'Value',2);
     case{'SSR'}, set(handles.ERP,'Value',2);
     case{'IND'}, set(handles.ERP,'Value',3);
     case{'PHA'}, set(handles.ERP,'Value',4);
@@ -93,6 +95,7 @@ handles = ERP_Callback(hObject, eventdata, handles);
 %--------------------------------------------------------------------------
 % 'ERP'    - (linear second order NMM slow)
 % 'SEP'    - (linear second order NMM fast)
+% 'CMC'    - (linear second order NMM Canonical microcircuit)
 % 'LFP'    - (linear second order NMM self-inhibition)
 % 'NMM'    - (nonlinear second order NMM first-order moments)
 % 'MFM'    - (nonlinear second order NMM second-order moments)
@@ -107,10 +110,10 @@ end
 switch model
     case{'ERP'}, set(handles.model,'Value',1);
     case{'SEP'}, set(handles.model,'Value',2);
-    case{'LFP'}, set(handles.model,'Value',3);
-    case{'NMM'}, set(handles.model,'Value',4);
-    case{'MFM'}, set(handles.model,'Value',5);
-    case{'DEM'}, set(handles.model,'Value',6);
+    case{'CMC'}, set(handles.model,'Value',3);
+    case{'LFP'}, set(handles.model,'Value',4);
+    case{'NMM'}, set(handles.model,'Value',5);
+    case{'MFM'}, set(handles.model,'Value',6);
     otherwise
 end
  
@@ -531,7 +534,7 @@ set(handles.spatial_back,  'Enable', 'on');
 set(handles.spatial_ok,    'Enable', 'on');
 
 switch handles.DCM.options.analysis
-    case{'SSR'}
+    case{'SSR','CSD'}
         set(handles.onset, 'Enable', 'off');
     otherwise
         set(handles.onset, 'Enable', 'on');
@@ -565,7 +568,7 @@ switch DCM.options.spatial
         %------------------------------------------------------------------
         Slocation = zeros(Nareas, 3);
         tmp       = get(handles.Slocation, 'String');
-        if ~isempty(tmp) & size(tmp,1) == Nareas
+        if ~isempty(tmp) && size(tmp,1) == Nareas
             for i = 1:Nareas
                 tmp2 = str2num(tmp(i, :));
                 if length(tmp2) ~= 3
@@ -600,7 +603,7 @@ switch DCM.options.spatial
         %------------------------------------------------------------------
         DCM.Lpos = zeros(3,0);
         try
-            set(handles.Slocation, 'String', {'assuming LFP in', Sname{1:Nchannels}});  
+            set(handles.Slocation, 'String', Sname(1:Nchannels));  
             set(handles.plot_dipoles,'enable','off')
         catch
             warndlg('There are more LFP channels than sources')
@@ -679,6 +682,7 @@ ERP_Callback(hObject, eventdata, handles);
 function plot_dipoles_Callback(hObject, eventdata, handles)
  
 % read location coordinates
+%--------------------------------------------------------------------------
 tmp       = get(handles.Slocation, 'String');
 Slocation = [];
 if ~isempty(tmp) 
@@ -712,7 +716,7 @@ DCM     = handles.DCM;
 n       = length(DCM.Sname);              % number of sources
 m       = size(DCM.xU.X,2);               % number of experimental inputs
 switch DCM.options.analysis
-    case{'SSR'}                           % for Steady-state responses
+    case{'SSR','CSD'}                     % for Steady-state responses
         l = n;                            % number of endogenous inputs
     otherwise
         l = length(DCM.options.onset);    % number of peristimulus inputs
@@ -951,7 +955,7 @@ set(handles.Slocation,         'Enable', 'on');
 set(handles.spatial_back,      'Enable', 'on');
 
 switch handles.DCM.options.analysis
-    case{'SSR'}
+    case{'SSR','CSD'}
         set(handles.onset,     'Enable', 'off');
     otherwise
         set(handles.onset,     'Enable', 'on');
@@ -1033,6 +1037,11 @@ switch handles.DCM.options.analysis
             otherwise
                 handles.DCM = spm_dcm_erp(handles.DCM);
         end
+        
+    % cross-spectral density model (complex)
+    %----------------------------------------------------------------------
+    case{'CSD'}
+        handles.DCM = spm_dcm_csd(handles.DCM);
 
     % cross-spectral density model (steady-state responses)
     %----------------------------------------------------------------------
@@ -1078,6 +1087,11 @@ switch handles.DCM.options.analysis
     %----------------------------------------------------------------------
     case{'ERP'}
         spm_dcm_erp_results(handles.DCM, Action);
+        
+    % Cross-spectral density model (complex)
+    %----------------------------------------------------------------------
+    case{'CSD'}
+        spm_dcm_csd_results(handles.DCM, Action);
  
     % Cross-spectral density model (steady-state responses)
     %----------------------------------------------------------------------
@@ -1176,6 +1190,36 @@ switch handles.DCM.options.analysis
         set(handles.Spatial,    'String',{'IMG','ECD','LFP'});
         set(handles.Wavelet,    'Enable','off','String','-');
         set(handles.onset,      'Enable','on');
+        
+    % Cross-spectral density model (complex)
+    %----------------------------------------------------------------------
+    case{'CSD'}
+        Action = {
+              'spectral data',...
+              'Coupling (A)',...
+              'Coupling (B)',...
+              'Coupling (C)',...
+              'trial-specific effects',...
+              'Input',...
+              'Transfer functions',...
+              'Cross-spectra (sources)',...
+              'Cross-spectra (channels)',...
+              'Coherence (sources)',...
+              'Coherence (channels)',...
+              'Covariance (sources)',...
+              'Covariance (channels)',...
+              'Dipoles'};
+        try
+            set(handles.Nmodes, 'Value', handles.DCM.options.Nmodes);
+        catch
+            set(handles.Nmodes, 'Value', 4);
+        end
+        
+        set(handles.text20, 'String', 'modes');
+        set(handles.model,  'Enable','on');              
+        set(handles.Spatial,'String',{'IMG','ECD','LFP'});
+        set(handles.Wavelet,'Enable','on','String','Spectral density');
+        set(handles.onset,  'Enable','off');
 
  
     % Cross-spectral density model (steady-state responses)
@@ -1281,6 +1325,19 @@ handles = reset_Callback(hObject, eventdata, handles);
 handles.DCM = spm_dcm_erp_dipfit(handles.DCM, 1);
 
 switch handles.DCM.options.analysis
+    
+    case{'CSD'}
+        
+        % cross-spectral density (if DCM.M.U (eigen-space) exists
+        %------------------------------------------------------------------
+        try
+            handles.DCM = spm_dcm_csd_data(handles.DCM);
+        end
+ 
+        % and display
+        %------------------------------------------------------------------
+        spm_dcm_csd_results(handles.DCM,'spectral data');
+        
  
     case{'SSR'}
         
@@ -1292,7 +1349,7 @@ switch handles.DCM.options.analysis
  
         % and display
         %------------------------------------------------------------------
-        spm_dcm_ssr_results(handles.DCM,'Data');
+        spm_dcm_ssr_results(handles.DCM,'spectral data');
  
  
     case{'IND'}
@@ -1315,6 +1372,4 @@ guidata(hObject,handles);
 function priors_Callback(hObject, eventdata, handles);
 handles = reset_Callback(hObject, eventdata, handles);
 spm_api_nmm(handles.DCM)
-
-
 

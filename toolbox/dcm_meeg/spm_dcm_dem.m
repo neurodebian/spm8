@@ -22,7 +22,7 @@ function DCM = spm_dcm_dem(DCM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_dcm_dem.m 3517 2009-10-29 15:11:56Z guillaume $
+% $Id: spm_dcm_dem.m 4281 2011-03-31 19:49:57Z karl $
 
 % check options
 %==========================================================================
@@ -37,7 +37,6 @@ try, h     = DCM.options.h;      catch, h         = 1;         end
 try, Nm    = DCM.options.Nmodes; catch, Nm        = 8;         end
 try, onset = DCM.options.onset;  catch, onset     = 60;        end
 try, model = DCM.options.model;  catch, model     = 'DEM';     end
-try, lock  = DCM.options.lock;   catch, lock      = 0;         end
 
 
 % Data and spatial model (use h only for de-trending data)
@@ -197,6 +196,7 @@ DCM.Ep  = Qp;                   % conditional expectation f(x,u,p)
 DCM.Cp  = Cp;                   % conditional covariances G(g)
 DCM.Eg  = Qg;                   % conditional expectation
 DCM.Cg  = Cg;                   % conditional covariances
+DCM.Ce  = Ce;                   % conditional error covariance
 DCM.Pp  = Pp;                   % conditional probability
 DCM.H   = y;                    % conditional responses (y), projected space
 DCM.K   = x;                    % conditional responses (x)
@@ -209,7 +209,6 @@ DCM.options.h      = h;
 DCM.options.Nmodes = Nm;
 DCM.options.onset  = onset;
 DCM.options.model  = model;
-DCM.options.lock   = lock;
 
 % store estimates in D
 %--------------------------------------------------------------------------
@@ -293,7 +292,7 @@ end
 
 % and save
 %--------------------------------------------------------------------------
-if spm_matlab_version_chk('7.1') >= 0
+if spm_check_version('matlab','7') >= 0
     save(DCM.name, '-V6', 'DCM');
 else
     save(DCM.name, 'DCM');

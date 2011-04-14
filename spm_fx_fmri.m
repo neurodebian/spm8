@@ -33,7 +33,7 @@ function [y] = spm_fx_fmri(x,u,P,M)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston & Klaas Enno Stephan
-% $Id: spm_fx_fmri.m 3888 2010-05-15 18:49:56Z karl $
+% $Id: spm_fx_fmri.m 4052 2010-08-27 19:22:44Z karl $
 
 
 % Neuronal motion
@@ -57,7 +57,7 @@ end
 % implement differential state equation y = dx/dt (neuronal)
 %--------------------------------------------------------------------------
 y    = x;
-if size(x,2) == 5
+if size(x,2) == 5  
     
     % one neuronal state per region
     %----------------------------------------------------------------------
@@ -96,7 +96,6 @@ end
 %--------------------------------------------------------------------------
 H        = [0.65 0.41 2.00 0.32 0.34];
 H        = [0.64 0.32 2.00 0.32 0.32];
-
 
 % exponentiation of hemodynamic state variables
 %--------------------------------------------------------------------------

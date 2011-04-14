@@ -83,7 +83,7 @@ function [Ep,Eg,Cp,Cg,S,F,L] = spm_nlsi_N(M,U,Y)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_nlsi_N.m 3696 2010-01-22 14:22:31Z karl $
+% $Id: spm_nlsi_N.m 4281 2011-03-31 19:49:57Z karl $
  
 % figure (unless disabled)
 %--------------------------------------------------------------------------
@@ -201,7 +201,7 @@ end
 nh    = length(Q);          % number of precision components
 nt    = length(Q{1});       % number of time bins
 nq    = nr*ns/nt;           % for compact Kronecker form of M-step
-h     = zeros(nh,1);        % initialize hyperparameters
+
  
  
 % confounds (if specified)
@@ -217,17 +217,23 @@ end
 try
     hE  = M.hE;
 catch
-    hE  = sparse(nh,1) - log(mean(var(y)));
+    hE  = sparse(nh,1) - log(var(spm_vec(y))) + 3;
 end
+h       =  hE;              % initialize hyperparameters
  
 % hyperpriors - covariance
 %--------------------------------------------------------------------------
 try
-    ihC = inv(M.hC);
+    ihC = spm_inv(M.hC);
 catch
-    ihC = speye(nh,nh)*8;
+    ihC = speye(nh,nh)*exp(8);
 end
- 
+
+% unpack prior covariances
+%--------------------------------------------------------------------------
+if isstruct(M.pC); M.pC = spm_diag(spm_vec(M.pC)); end
+if isstruct(M.gC); M.gC = spm_diag(spm_vec(M.gC)); end
+
 % dimension reduction of parameter space
 %--------------------------------------------------------------------------
 Vp    = spm_svd(M.pC,exp(-32));
@@ -248,9 +254,9 @@ sw    = warning('off','all');
 pC    = Vp'*M.pC*Vp;
 gC    = Vg'*M.gC*Vg;
 uC    = speye(nu,nu)*exp(32);
-ipC   = inv(pC);                               % p - state parameters
-igC   = inv(gC);                               % g - observer parameters
-iuC   = inv(uC);                               % u - fixed parameters
+ipC   = spm_inv(pC);                               % p - state parameters
+igC   = spm_inv(gC);                               % g - observer parameters
+iuC   = spm_inv(uC);                               % u - fixed parameters
 ibC   = spm_cat(spm_diag({ipC,igC,iuC}));      % all parameters
  
 % initialize conditional density
@@ -330,7 +336,7 @@ for ip = 1:64
         % Optimize F(h): parameters of iS(h)
         %==================================================================
         dgdb   = [dgdp dgdg dgdu];           
-        for ih = 1:8
+        for ih = 1:16
  
             % precision
             %--------------------------------------------------------------
@@ -338,10 +344,10 @@ for ip = 1:64
             for i = 1:nh
                 iS = iS + Q{i}*exp(h(i));
             end
-            S     = inv(iS);
+            S     = spm_inv(iS);
             iS    = kron(speye(nq),iS);
             dFdbb = dgdb'*iS*dgdb + ibC;
-            Cb    = inv(dFdbb);
+            Cb    = spm_inv(dFdbb);
             
             % precision operators for M-Step
             %--------------------------------------------------------------
@@ -367,7 +373,7 @@ for ip = 1:64
             eh    = h     - hE;
             dFdh  = dFdh  - ihC*eh;
             dFdhh = dFdhh - ihC;
-            Ch    = inv(-dFdhh);
+            Ch    = spm_inv(-dFdhh);
             
             % M-Step: update ReML estimate of h
             %--------------------------------------------------------------
@@ -402,7 +408,7 @@ for ip = 1:64
         %------------------------------------------------------------------
         dg    = spm_dx(dFdgg,dFdg,{8});
         Eg    = spm_unvec(spm_vec(Eg) + Vg*dg,Eg);
- 
+         
         % convergence
         %------------------------------------------------------------------
         dG    = dFdg'*dg;
@@ -443,7 +449,7 @@ for ip = 1:64
  
         % decrease regularization
         %------------------------------------------------------------------
-        v     = min(v + 1/2,4);
+        v     = min(v + 1/2,8);
         str   = 'EM(+)';
  
         % accept current estimates
@@ -468,7 +474,7 @@ for ip = 1:64
  
         % and increase regularization
         %------------------------------------------------------------------
-        v     = min(v - 2,-4);
+        v     = min(v - 2,0);
         str   = 'EM(-)';
  
     end

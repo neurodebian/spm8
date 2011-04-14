@@ -58,15 +58,13 @@ function [y] = spm_int_L(P,M,U)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_int_L.m 3705 2010-02-01 20:51:28Z karl $
+% $Id: spm_int_L.m 4281 2011-03-31 19:49:57Z karl $
  
  
 % convert U to U.u if necessary
 %--------------------------------------------------------------------------
 if ~isstruct(U), u.u = U; U = u;         end
 try, dt = U.dt;        catch, dt = 1;    end
-try, ns = size(U.u,1); catch, ns = M.ns; end
-
  
 % state equation; add [0] states if not specified
 %--------------------------------------------------------------------------
@@ -116,11 +114,11 @@ dfdx  = full(dfdx);
 p     = max(abs(real(eig(dfdx))));
 N     = ceil(max(1,dt*p*2));
 n     = length(spm_vec(x));
-Q     = (spm_expm(dt*D*dfdx/N) - speye(n,n))*pinv(dfdx);
+Q     = (spm_expm(dt*D*dfdx/N) - speye(n,n))*spm_inv(dfdx);
  
 % integrate
 %==========================================================================
-for i = 1:ns
+for i = 1:size(U.u,1)
  
     % input
     %----------------------------------------------------------------------

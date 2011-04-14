@@ -8,7 +8,7 @@ function [SPM] = spm_contrasts(SPM,Ic)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes, Karl Friston & Jean-Baptiste Poline
-% $Id: spm_contrasts.m 3995 2010-07-13 17:19:49Z karl $
+% $Id: spm_contrasts.m 4185 2011-02-01 18:46:18Z guillaume $
 
 % Temporary SPM variable to check for any changes to SPM. We want to avoid
 % always having to save SPM.mat unless it has changed, because this is
@@ -86,8 +86,13 @@ for i = 1:length(Ic)
                     fprintf('\t%-32s: %30s',sprintf('X2 image %2d',ic),...
                         '...computing');                                %-#
                     
-                    xCon = spm_vb_x2(SPM,XYZ,xCon,ic);
-                    
+                    if isfield(SPM.PPM,'VB')
+                        % First level Bayes
+                        xCon = spm_vb_x2(SPM,XYZ,xCon,ic);
+                    else
+                        % Second level Bayes
+                        xCon = spm_bayes2_x2(SPM,XYZ,xCon,ic);
+                    end
                 else
                     %-Implement contrast as sum of scaled beta images
                     %------------------------------------------------------
@@ -175,7 +180,7 @@ for i = 1:length(Ic)
                 l     = spm_get_data(VHp,XYZ);       % get hyperparamters
                 Vc    = xCon(ic).c'*SPM.xX.Bcov*xCon(ic).c;
                 SE    = sqrt(l*Vc);                  % and standard error
-                Z     = cB./(SE + exp(-8)*max(SE));
+                Z     = cB./SE;
                 str   = sprintf('[%.1f]',SPM.xX.erdf);
                 
                 
@@ -275,9 +280,9 @@ SPM.xCon = xCon;
 % Check if SPM has changed. Save only if it has.
 %--------------------------------------------------------------------------
 if ~isequal(tmpSPM,SPM)
-    if spm_matlab_version_chk('7') >=0
-        save('SPM', 'SPM', '-V6');
+    if spm_check_version('matlab','7') >=0
+        save('SPM.mat', 'SPM', '-V6');
     else
-        save('SPM', 'SPM');
+        save('SPM.mat', 'SPM');
     end
 end

@@ -7,7 +7,7 @@ function varargout = spm_eeg_inv_imag_api(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Jeremie Mattout
-% $Id: spm_eeg_inv_imag_api.m 3996 2010-07-13 22:20:40Z vladimir $
+% $Id: spm_eeg_inv_imag_api.m 4260 2011-03-23 13:42:21Z vladimir $
 
 spm('Clear');
 
@@ -205,7 +205,7 @@ Reset(hObject, eventdata, handles);
 % --- Executes on button press in delete.
 %--------------------------------------------------------------------------
 function delete_Callback(hObject, eventdata, handles)
-if length(handles.D.inv)
+if ~isempty(handles.D.inv)
     try
         str = handles.D.inv{handles.D.val}.comment;
         warndlg({'you are about to delete:',str{1}});
@@ -231,7 +231,7 @@ if ~isfield(handles.D,'inv')
     new_Callback(hObject, eventdata, handles)
     return
 end
-if ~length(handles.D.inv)
+if isempty(handles.D.inv)
     new_Callback(hObject, eventdata, handles)
     return
 end
@@ -258,7 +258,6 @@ if isfield(Q, 'mesh') &&...
     Q = rmfield(Q, {'mesh', 'datareg', 'forward'});
 end
 % =========================================================================
-
 
 set(handles.new,      'enable','on','value',0)
 set(handles.clear,    'enable','on','value',0)
@@ -418,6 +417,9 @@ function CheckInverse_Callback(hObject, eventdata, handles)
 if strcmp(handles.D.inv{handles.D.val}.method,'Imaging')
     PST    = str2num(get(handles.PST,'String'));
     spm_eeg_invert_display(handles.D,PST);
+    if length(PST) == 3 && get(handles.extract, 'Value')
+        handles.D = spm_eeg_inv_extract_ui(handles.D, handles.D.val, PST);        
+    end
 elseif strcmp(handles.D.inv{handles.D.val}.method, 'vbecd')
     spm_eeg_inv_vbecd_disp('init',handles.D);
 end
