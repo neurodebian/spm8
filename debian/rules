@@ -1,5 +1,16 @@
 #!/usr/bin/make -f
 
+srcpkg = $(shell LC_ALL=C dpkg-parsechangelog | grep '^Source:' | cut -d ' ' -f 2,2)
+debver = $(shell LC_ALL=C dpkg-parsechangelog | grep '^Version:' | cut -d ' ' -f 2,2 )
+upstreamver = $(shell echo $(debver) | cut -d '-' -f 1,1 )
+
+# this figures out the last merge point from 'master' into the Debian branch and
+# then described this commit relative to the last release tag (upstream/...)
+# If this should make any sense the local master branch must track upstream's
+# master or whatever other source branch.
+gitver = $(shell [ -x /usr/bin/git ] && git describe --tags --match 'upstream/*' $$(git merge-base -a HEAD master) | sed -e 's,^upstream/,,' -e 's/_/~/g' -e 's/-/+git/')
+
+
 # get octave paths (have to build-depend on octave-headers)
 #include /usr/share/octave/debian/defs.make
 # same for Matlab
@@ -91,7 +102,10 @@ override_dh_shlibdeps:
 
 # run this to remove undesired pieces after extracting an upstream update
 # zip file on top of the sources
-maint-clean:
+dfsg-source-tree:
+	-quilt pop -a
+	@echo "Testing for uncommited changes"
+	@git diff --quiet HEAD
 	# leftovers from previous compile runs
 	find . -name '*.mex*' -delete
 	# strip compiled manuals, but keep individual figures in PDF format
@@ -101,3 +115,8 @@ maint-clean:
 	rm -rf external/yokogawa
 	# actually remove all third party software
 	rm -rf external
+
+get-orig-source: dfsg-source-tree
+	git archive --format=tar --prefix=$(srcpkg)-$(gitver)/ HEAD | \
+		gzip -9 > $(srcpkg)_$(gitver).orig.tar.gz
+
