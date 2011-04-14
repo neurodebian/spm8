@@ -1,3 +1,10 @@
+spm8 (8.4290~dfsg.1-1) unstable; urgency=low
+
+  * New upstream release. MEX-related patches have been merged.
+  * New toolbox "Shoot" for image registration for doing shape analysis.
+
+ -- Michael Hanke <mih@debian.org>  Thu, 14 Apr 2011 15:11:54 -0400
+
 spm8 (8.4010~dfsg.1-4) unstable; urgency=low
 
   * Modifications to address changes in the matlab-support package (formerly

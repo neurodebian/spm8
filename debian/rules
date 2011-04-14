@@ -40,7 +40,7 @@ override_dh_auto_install:
 		-exec cp -r -t debian/spm8-common/usr/share/spm8 \{\} \;
 	# cleanup overshoot
 	find debian/spm8-common/usr/share/spm8 -regextype posix-egrep -type f \
-		-regex '.*(\.([ch]|gii|nii)|Makefile|spm_LICENCE.man|\.gitignore)' \
+		-regex '.*(\.([ch]|gii|nii)|Makefile|spm_LICENCE.man|\.gitignore|.gitattributes)' \
 		-delete
 	# generate file links setup
 	cp debian/spm8-data.links.in debian/spm8-data.links

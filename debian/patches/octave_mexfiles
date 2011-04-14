@@ -1,6 +1,6 @@
 --- a/src/Makefile
 +++ b/src/Makefile
-@@ -387,6 +387,13 @@
+@@ -397,6 +397,13 @@
  	@ echo "_____________________________________________________________"
  	@ echo ""
  
@@ -14,29 +14,3 @@
  verb.external:
  	@ echo "_____________________________________________________________"
  	@ echo ""
---- a/src/spm_existfile.c
-+++ b/src/spm_existfile.c
-@@ -5,11 +5,13 @@
-  
- #define _FILE_OFFSET_BITS 64
- 
-+#include <stdio.h>
- #include "mex.h"
- 
-+
- void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
- {
--    bool status    = false;
-+    bool status    = 0;
-     char *filename = NULL;
-     FILE *fid      = NULL;
-     
-@@ -23,7 +25,7 @@
-         fid = fopen(filename,"r");
-         if (fid != NULL)
-         {
--            status = true;
-+            status = 1;
-             fclose(fid);
-         }
-         mxFree(filename);
