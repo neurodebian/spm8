@@ -88,3 +88,16 @@ override_dh_shlibdeps:
 	# them and warn all the time
 	#dh_shlibdeps -l$(shell octave-config --print OCTLIBDIR)
 	dh_shlibdeps
+
+# run this to remove undesired pieces after extracting an upstream update
+# zip file on top of the sources
+maint-clean:
+	# leftovers from previous compile runs
+	find . -name '*.mex*' -delete
+	# strip compiled manuals, but keep individual figures in PDF format
+	rm -f man/manual.pdf
+	rm -f external/ctf/CTF_MATLAB_v13.pdf
+	# remove binary only pieces
+	rm -rf external/yokogawa
+	# actually remove all third party software
+	rm -rf external
