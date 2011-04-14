@@ -18,13 +18,13 @@ function DCM = spm_dcm_ssr(DCM)
 %   options.Tdcm         - [start end] time window in ms
 %   options.Fdcm         - [start end] Frequency window in Hz
 %   options.D            - time bin decimation       (usually 1 or 2)
-%   options.type         - 'ECD', ‘LFP’ or ‘IMG’     (see spm_erp_L)
-%   options.model        - 'ECD', ‘SEP’, 'NMM' or ‘MFM’
+%   options.type         - 'ECD', 'LFP' or 'IMG'     (see spm_erp_L)
+%   options.model        - 'ECD', 'SEP', 'CMC', 'NMM' or 'MFM'
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_dcm_ssr.m 3497 2009-10-21 21:54:28Z vladimir $
+% $Id: spm_dcm_ssr.m 4281 2011-03-31 19:49:57Z karl $
 
 
 % check options
@@ -57,8 +57,10 @@ DCM.M.dipfit.model = model;
 [pE,pC]  = spm_dcm_neural_priors(DCM.A,DCM.B,DCM.C,model);
 
 try
-    pE   = DCM.M.pE;
-    fprintf('Using existing priors\n')
+    if length(spm_vec(DCM.M.pE)) == length(spm_vec(pE));
+        pE = DCM.M.pE;
+        fprintf('Using existing priors\n')
+    end
 end
 
 % augment with priors on spatial model
@@ -83,6 +85,8 @@ DCM.M.x  = x;
 DCM.M.n  = length(spm_vec(x));
 DCM.M.pE = pE;
 DCM.M.pC = pC;
+DCM.M.hE = 6;
+DCM.M.hC = 1/32;
 DCM.M.m  = Ns;
 
 %-Feature selection using principal components (U) of lead-field
@@ -105,25 +109,33 @@ end
 
 % get data-features (in reduced eigen-space)
 %--------------------------------------------------------------------------
-DCM      = spm_dcm_ssr_data(DCM);
+DCM        = spm_dcm_ssr_data(DCM);
+DCM.xY.y   = spm_unvec(abs(spm_vec(DCM.xY.y)),DCM.xY.y);
 
 
 % complete model specification and invert
 %==========================================================================
-Nm       = size(DCM.M.U,2);               % number of spatial modes
-Nt       = size(DCM.xY.y,1);              % number of trials
-Nf       = size(DCM.xY.y{1},1);           % number of frequency bins
-DCM.M.l  = Nm;
-DCM.M.Hz = DCM.xY.Hz;
+Nm         = size(DCM.M.U,2);                    % number of spatial modes
+Nt         = size(DCM.xY.y,1);                   % number of trials
+Nf         = size(DCM.xY.y{1},1);                % number of frequency bins
+DCM.M.l    = Nm;
+DCM.M.Hz   = DCM.xY.Hz;
 
 % precision of noise: AR(1/2)
 %--------------------------------------------------------------------------
-DCM.xY.Q  = spm_Q(1/2,Nf,1);
-DCM.xY.X0 = sparse(Nf,0);
+DCM.xY.Q   = spm_Q(1/2,Nf,1);
+DCM.xY.X0  = sparse(Nf,0);
+
+% adjust priors on gain to accomodate scaling differences among models
+%--------------------------------------------------------------------------
+Hc         = feval(DCM.M.IS,DCM.M.pE,DCM.M,DCM.xU);
+DCM.M.U        = U*sqrt(norm(spm_vec(DCM.xY.y),'inf')/norm(spm_vec(Hc,'inf')));
+
 
 % EM: inversion
 %--------------------------------------------------------------------------
-[Qp,Cp,Ce,F] = spm_nlsi_GN(DCM.M,DCM.xU,DCM.xY);
+[Qp,Cp,Eh,F] = spm_nlsi_GN(DCM.M,DCM.xU,DCM.xY);
+Ce           = exp(-Eh);
 
 % Data ID
 %==========================================================================
@@ -167,7 +179,7 @@ DCM.ID = ID;                   % data ID
 %--------------------------------------------------------------------------
 DCM.options.Nmodes = Nm;
 
-if spm_matlab_version_chk('7.1') >= 0
+if spm_check_version('matlab','7') >= 0
     save(DCM.name, '-V6', 'DCM');
 else
     save(DCM.name, 'DCM');

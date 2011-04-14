@@ -23,9 +23,9 @@ function [D] = spm_eeg_tf_rescale(S)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % Will Penny
-% $Id: spm_eeg_tf_rescale.m 3938 2010-06-18 15:03:28Z vladimir $
+% $Id: spm_eeg_tf_rescale.m 4287 2011-04-04 13:55:54Z vladimir $
 
-SVNrev = '$Rev: 3938 $';
+SVNrev = '$Rev: 4287 $';
 
 %-Startup
 %--------------------------------------------------------------------------
@@ -45,8 +45,8 @@ end
 try
     S.tf.method;
 catch
-    str  = {'LogR','Diff', 'Rel', 'Log','Sqrt'};
-    S.tf.method = spm_input('Rescale method','+1','b',str,[],1);
+    str  = {'LogR','Diff', 'Rel', 'Log', 'Sqrt', 'Zscore'};
+    S.tf.method = spm_input('Rescale method','+1','m',str,char(str),1);
 end
 
 Din  = spm_eeg_load(D);
@@ -57,7 +57,7 @@ D    = clone(Din, ['r' Din.fnamedat], [Din.nchannels Nf Din.nsamples Din.ntrials
 
 switch lower(S.tf.method)
     
-    case {'logr','diff', 'rel'}
+    case {'logr','diff', 'rel', 'zscore'}
         try
             S.tf.Sbaseline;
         catch            
@@ -91,17 +91,21 @@ switch lower(S.tf.method)
                 xbase=spm_squeeze(Db(:,:,:,c), 4);
             else
                 xbase=spm_squeeze(Db(:,:,:,1), 4);
-            end
-            xbase=mean(xbase(:,:,inds),3);
+            end            
             switch lower(S.tf.method)
                 case 'logr'
-                    x=log10(x);
-                    xbase=mean(x(:,:,inds),3);
+                    xbase=mean(log10(xbase(:,:,inds)),3);
                     D(:,:,:,c)= 10*(x - repmat(xbase,[1 1 D.nsamples 1]));
                     D = units(D, [], 'dB');
                 case 'diff'
+                    xbase=mean(xbase(:,:,inds),3);
                     D(:,:,:,c)= (x - repmat(xbase,[1 1 D.nsamples 1]));
+                case 'zscore'
+                    stdev = std(xbase(:,:,inds), [], 3);
+                    xbase= mean(xbase(:,:,inds),3);                    
+                    D(:,:,:,c)= (x - repmat(xbase,[1 1 D.nsamples 1]))./repmat(stdev,[1 1 D.nsamples 1]);
                 case 'rel'
+                    xbase=mean(xbase(:,:,inds),3);
                     D(:,:,:,c)= 100*((x./repmat(xbase,[1 1 D.nsamples 1]) - 1));
                     D = units(D, [], '%');
             end

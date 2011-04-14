@@ -38,6 +38,8 @@ function [DEM] = spm_ADEM(DEM)
 %   M(i).V  = fixed precision (input noise)
 %   M(i).W  = fixed precision (state noise)
 %   M(i).xP = precision (states)
+%   
+%   M(1).Ra = indices of prediction errors driving action
 %
 %   M(i).m  = number of inputs v(i + 1);
 %   M(i).n  = number of states x(i)
@@ -112,7 +114,7 @@ function [DEM] = spm_ADEM(DEM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_ADEM.m 3901 2010-05-27 16:14:36Z karl $
+% $Id: spm_ADEM.m 4230 2011-03-07 20:58:38Z karl $
  
 % check model, data, priors and unpack
 %--------------------------------------------------------------------------
@@ -567,7 +569,7 @@ for iE = 1:nE
         for i = 1:nh
             iS = iS + Q{i}*exp(qh.h(i));
         end
-        S     = inv(iS);
+        S     = spm_inv(iS);
         dS    = ECE + EE - S*nY;
          
         % 1st-order derivatives: dFdh = dF/dh
@@ -637,8 +639,10 @@ for iE = 1:nE
             z     = spm_unvec(pU(t).z{1},{G.v});
             w     = spm_unvec(pU(t).w{1},{G.x});
             for i = 1:nl
-                PU.v{i}(:,t)     = spm_vec(v{i});
-                PU.z{i}(:,t)     = spm_vec(z{i});
+                try
+                    PU.v{i}(:,t) = spm_vec(v{i});
+                    PU.z{i}(:,t) = spm_vec(z{i});
+                end
                 try
                     PU.x{i}(:,t) = spm_vec(x{i});
                     PU.w{i}(:,t) = spm_vec(w{i});

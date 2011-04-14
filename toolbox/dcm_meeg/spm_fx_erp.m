@@ -26,7 +26,7 @@ function [f,J,Q] = spm_fx_erp(x,u,P,M)
 %  M.pF.D = [2 16];              % propogation delays (intrinsic, extrinsic)
 %  M.pF.H = [4 32];              % receptor densities (excitatory, inhibitory)
 %  M.pF.T = [8 16];              % synaptic constants (excitatory, inhibitory)
-%  M.pF.R = 0.56;                % parameter of static nonlinearity
+%  M.pF.R = [1 1/2];             % parameter of static nonlinearity
 %
 %__________________________________________________________________________
 % David O, Friston KJ (2003) A neural mass model for MEG/EEG: coupling and
@@ -35,41 +35,39 @@ function [f,J,Q] = spm_fx_erp(x,u,P,M)
 % Copyright (C) 2005 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_fx_erp.m 2374 2008-10-21 18:52:29Z karl $
-
-
+% $Id: spm_fx_erp.m 4281 2011-03-31 19:49:57Z karl $
 
 
 % get dimensions and configure state variables
 %--------------------------------------------------------------------------
-n  = length(P.A{1});             % number of sources
-x  = spm_unvec(x,M.x);           % neuronal states
+n = length(P.A{1});         % number of sources
+x = spm_unvec(x,M.x);       % neuronal states
 
 % [default] fixed parameters
 %--------------------------------------------------------------------------
-try
-    E  = M.pF.E;                % extrinsic rates (forward, backward, lateral)
-    G  = M.pF.G;                % intrinsic rates (g1, g2 g3, g4)
-    D  = M.pF.D;                % propogation delays (intrinsic, extrinsic)
-    H  = M.pF.H;                % receptor densities (excitatory, inhibitory)
-    T  = M.pF.T;                % synaptic constants (excitatory, inhibitory)
-    R  = M.pF.R;                % parameters of static nonlinearity
-catch
-    E = [32 16 4];              % extrinsic rates (forward, backward, lateral)
-    G = [1 4/5 1/4 1/4]*128;    % intrinsic rates (g1, g2 g3, g4)
-    D = [2 32];                 % propogation delays (intrinsic, extrinsic)
-    H = [4 32];                 % receptor densities (excitatory, inhibitory)
-    T = [8 16];                 % synaptic constants (excitatory, inhibitory)
-    R = [2 1]/3;                % parameters of static nonlinearity
-end
+E = [1 1/2 1/8]*32;         % extrinsic rates (forward, backward, lateral)
+G = [1 4/5 1/4 1/4]*128;    % intrinsic rates (g1 g2 g3 g4)
+D = [2 16];                 % propogation delays (intrinsic, extrinsic)
+H = [4 32];                 % receptor densities (excitatory, inhibitory)
+T = [8 16];                 % synaptic constants (excitatory, inhibitory)
+R = [2 1]/3;                % parameters of static nonlinearity
+
+% [specified] fixed parameters
+%--------------------------------------------------------------------------
+try, E = M.pF.E; end
+try, G = M.pF.G; end
+try, D = M.pF.D; end
+try, H = M.pF.H; end
+try, T = M.pF.T; end
+try, R = M.pF.R; end
 
 
 % test for free parameters on intrinsic connections
 %--------------------------------------------------------------------------
-G     = ones(n,1)*G;
 try
     G = G.*exp(P.G);
 end
+G     = ones(n,1)*G;
 
 % exponential transform to ensure positivity constraints
 %--------------------------------------------------------------------------
@@ -80,10 +78,10 @@ C     = exp(P.C);
 
 % intrinsic connectivity and parameters
 %--------------------------------------------------------------------------
-Te    = T(1)/1000*exp(P.T);           % excitatory time constants
-Ti    = T(2)/1000;                    % inhibitory time constants
-Hi    = H(2);                         % inhibitory receptor density
-He    = H(1)*exp(P.H);                % excitatory receptor density
+Te    = T(1)/1000*exp(P.T(:,1));         % excitatory time constants
+Ti    = T(2)/1000*exp(P.T(:,2));         % inhibitory time constants
+He    = H(1)*exp(P.H(:,1));              % excitatory receptor density
+Hi    = H(2)*exp(P.H(:,2));              % inhibitory receptor density
 
 % pre-synaptic inputs: s(V)
 %--------------------------------------------------------------------------
@@ -117,67 +115,18 @@ f(:,5) = (He.*((A{2} + A{3})*S(:,9) + G(:,2).*S(:,1)) - 2*x(:,5) - x(:,2)./Te)./
 % Infra-granular layer (pyramidal cells): hyperpolarizing current
 %--------------------------------------------------------------------------
 f(:,3) = x(:,6);
-f(:,6) = (Hi*G(:,4).*S(:,7) - 2*x(:,6) - x(:,3)/Ti)/Ti;
+f(:,6) = (Hi.*G(:,4).*S(:,7) - 2*x(:,6) - x(:,3)./Ti)./Ti;
 
 % Infra-granular layer (pyramidal cells): Voltage
 %--------------------------------------------------------------------------
 f(:,9) = x(:,5) - x(:,6);
-
-f      = f(:);
+f      = spm_vec(f);
 
 if nargout == 1; return, end
 
-
-
-% Jacobian: J = df(x)/dx
-%===========================================================================
-I  = speye(n,n);
-J  = kron(sparse(9,9),sparse(n,n));
-
-% changes in voltage with current
-%--------------------------------------------------------------------------
-S  = sparse([7 2 1 3 9],[8 5 4 6 5],1,9,9);  J = J + kron(S,I);
-S  = sparse(9,6,-1,9,9);                     J = J + kron(S,I);
-
-% synaptic kernel
-%--------------------------------------------------------------------------
-S  = sparse([8 4 5],[8 4 5],1,9,9); J = J - kron(S,diag(2./Te));
-S  = sparse(6,6,1,9,9);             J = J - kron(S,I)*2/Ti;
-S  = sparse([8 4 5],[7 1 2],1,9,9); J = J - kron(S,diag(1./(Te.*Te)));
-S  = sparse(6,3,1,9,9);             J = J - kron(S,I)/(Ti*Ti);
-
-% Supragranular layer (inhibitory interneurons)
-%--------------------------------------------------------------------------
-E  = (A{2} + A{3})*diag(dSdx(:,9)) + diag(G(:,3).*dSdx(:,9));
-E  = diag(He./Te)*E;
-S  = sparse(8,9,1,9,9); J = J + kron(S,E);
-
-% Granular layer (spiny stellate cells)
-%--------------------------------------------------------------------------
-E  = (A{1} + A{3})*diag(dSdx(:,9)) + diag(G(:,1).*dSdx(:,9));
-E  = diag(He./Te)*E;
-S  = sparse(4,9,1,9,9); J = J + kron(S,E);
-
-% Infra-granular layer (pyramidal cells)
-%--------------------------------------------------------------------------
-E  = (A{2} + A{3})*diag(dSdx(:,9));
-E  = diag(He./Te)*E;
-S  = sparse(5,9,1,9,9); J = J + kron(S,E);
-
-E  = diag(G(:,2).*dSdx(:,1));
-E  = diag(He./Te)*E;
-S  = sparse(5,1,1,9,9); J = J + kron(S,E);
-
-% Infra-granular layer (pyramidal cells)
-%--------------------------------------------------------------------------
-E  = diag(G(:,4).*dSdx(:,7));
-E  = Hi*E/Ti;
-S  = sparse(6,7,1,9,9); J = J + kron(S,E);
-
-if nargout == 2; return, end
-
-
-
+% Jacobian
+%==========================================================================
+J     = spm_diff(M.f,x,u,P,M,1);
 
 % delays
 %==========================================================================
@@ -189,8 +138,6 @@ if nargout == 2; return, end
 %
 %    J(d)         = Q(d)df/dx
 %--------------------------------------------------------------------------
-
-
 De = D(2).*exp(P.D)/1000;
 Di = D(1)/1000;
 De = (1 - speye(n,n)).*De;

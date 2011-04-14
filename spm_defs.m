@@ -11,7 +11,7 @@ function out = spm_defs(job)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_defs.m 3755 2010-03-05 14:14:36Z volkmar $
+% $Id: spm_defs.m 4194 2011-02-05 18:08:06Z ged $
 
 [Def,mat] = get_comp(job.comp);
 [dpath ipath] = get_paths(job);
@@ -81,7 +81,7 @@ bb  = job.bb;
 sn  = load(job.matname{1});
 
 if any(isfinite(bb(:))) || any(isfinite(vox)),
-    [bb0,vox0] = bbvox_from_V(sn.VG(1));
+    [bb0,vox0] = spm_get_bbox(sn.VG(1), 'old');
 
     if any(~isfinite(vox)), vox = vox0; end;
     if any(~isfinite(bb)),  bb  = bb0;  end;
@@ -163,17 +163,6 @@ for j=1:length(z)
     Def{2}(:,:,j) = single(Y2);
     Def{3}(:,:,j) = single(Z2);
 end;
-%_______________________________________________________________________
-
-%_______________________________________________________________________
-function [bb,vx] = bbvox_from_V(V)
-% Return the default bounding box for an image volume
-
-vx = sqrt(sum(V.mat(1:3,1:3).^2));
-o  = V.mat\[0 0 0 1]';
-o  = o(1:3)';
-bb = [-vx.*(o-1) ; vx.*(V.dim(1:3)-o)];
-return;
 %_______________________________________________________________________
 
 %_______________________________________________________________________
@@ -301,7 +290,7 @@ if isempty(ofname), fname = {}; return; end;
 
 fname = {fullfile(odir,['y_' ofname '.nii'])};
 dim   = [size(Def{1},1) size(Def{1},2) size(Def{1},3) 1 3];
-dtype = 'FLOAT32-LE';
+dtype = 'FLOAT32';
 off   = 0;
 scale = 1;
 inter = 0;
@@ -333,7 +322,7 @@ ofnames = cell(size(fnames,1),1);
 for i=1:size(fnames,1),
     V = spm_vol(fnames(i,:));
     M = inv(V.mat);
-    [pth,nam,ext] = spm_fileparts(fnames(i,:));
+    [pth,nam,ext,num] = spm_fileparts(deblank(fnames(i,:)));
     if isempty(odir)
         % use same path as source image
         opth = pth;
@@ -349,6 +338,7 @@ for i=1:size(fnames,1),
                 'mat',mat,...
                 'n',V.n,...
                 'descrip',V.descrip);
+    ofnames{i} = [ofnames{i} num];
     C  = spm_bsplinc(V,intrp);
     Vo = spm_create_vol(Vo);
     for j=1:size(Def{1},3)

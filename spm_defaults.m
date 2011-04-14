@@ -17,7 +17,7 @@ function spm_defaults
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % 
-% $Id: spm_defaults.m 3953 2010-06-28 16:58:48Z guillaume $
+% $Id: spm_defaults.m 4152 2011-01-11 14:13:35Z volkmar $
 
 %-Prevent users from making direct calls to this function
 %-----------------------------------------------------------------------
@@ -60,13 +60,13 @@ defaults.dicom.root     = 'flat'; % Folder hierarchy
 
 % Stats defaults
 %=======================================================================
-defaults.stats.maxmem      = 2^26;
-defaults.stats.maxres      = 64;
-defaults.stats.fmri.ufp    = 0.001;  % Upper tail F-probability
-defaults.stats.pet.ufp     = 0.05;
-defaults.stats.eeg.ufp     = 1;
-defaults.stats.topoFDR     = 1;
-defaults.stats.rft.nonstat = 0;
+defaults.stats.maxmem       = 2^26;
+defaults.stats.maxres       = 64;
+defaults.stats.fmri.ufp     = 0.001;  % Upper tail F-probability
+defaults.stats.pet.ufp      = 0.05;
+defaults.stats.eeg.ufp      = 1;
+defaults.stats.topoFDR      = 1;
+defaults.stats.rft.nonstat  = 0;
 
 % Mask defaults
 %=======================================================================
@@ -91,7 +91,6 @@ defaults.smooth.prefix          = 's';
 % Realignment defaults
 %=======================================================================
 defaults.realign.estimate.quality = 0.9;
-defaults.realign.estimate.weight  = {''};
 defaults.realign.estimate.interp  = 2;
 defaults.realign.estimate.wrap    = [0 0 0];
 defaults.realign.estimate.sep     = 4;
@@ -139,7 +138,6 @@ defaults.normalise.estimate.weight  = '';
 defaults.normalise.estimate.cutoff  = 25;
 defaults.normalise.estimate.nits    = 16;
 defaults.normalise.estimate.reg     = 1;
-defaults.normalise.estimate.wtsrc   = 0;
 defaults.normalise.write.preserve   = 0;
 defaults.normalise.write.bb         = [[-78 -112 -50];[78 76 85]];
 defaults.normalise.write.vox        = [2 2 2];
@@ -158,6 +156,7 @@ defaults.preproc.warpco         = 25;         % Warp Frequency Cutoff
 defaults.preproc.biasreg        = 0.0001;     % Bias regularisation
 defaults.preproc.biasfwhm       = 60;         % Bias FWHM
 defaults.preproc.regtype        = 'mni';      % Affine Regularisation
+defaults.preproc.fudge          = 5;          % Fudge factor, can not be set in batch GUI
 defaults.preproc.samp           = 3;          % Sampling distance
 defaults.preproc.output.GM      = [0 0 1];
 defaults.preproc.output.WM      = [0 0 1];

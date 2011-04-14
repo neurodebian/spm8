@@ -17,7 +17,7 @@ function [u dg df] = spm_DEM_diff(M,u)
 % Copyright (C) 2005 Wellcome Department of Imaging Neuroscience
  
 % Karl Friston
-% $Id: spm_DEM_diff.m 3655 2009-12-23 20:15:34Z karl $
+% $Id: spm_DEM_diff.m 4247 2011-03-14 18:16:50Z karl $
 
 % Check for action (ADEM)
 %==========================================================================

@@ -166,13 +166,9 @@ else
         cmsgcfg = msgcfg;
     else
         % no identity match found, match against regexp templates
-msgid
         sel = ~cellfun(@isempty, regexp(msgid, {msgtpl.identifier}));
         cmsgcfg = msgtpl;
-% [DiN]
-	if any(sel)
         [cmsgcfg(sel).identifier] = deal(msgid);
-end
     end
     switch nnz(sel)
         case 0

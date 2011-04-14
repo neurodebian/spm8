@@ -11,12 +11,13 @@
 % Copyright (C) 2010 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: DEM_demo_hdm_LAP.m 3901 2010-05-27 16:14:36Z karl $
+% $Id: DEM_demo_hdm_LAP.m 4146 2010-12-23 21:01:39Z karl $
 
 % set-up
 %--------------------------------------------------------------------------
 clear
 DEMO = 1;
+global dt
 
 if DEMO
     
@@ -30,19 +31,16 @@ if DEMO
     %======================================================================
     dt      = Y.dt;
     T       = 1:256;
-
+    
     % level 1
     %----------------------------------------------------------------------
-    [pE pC] = spm_hdm_priors(3,1);
-    P       = pE;
-    P(7:9)  = 1/8;
+    [pE pC] = spm_hdm_priors(3,2);
     M(1).x  = [0 0 0 0]';
     M(1).g  = 'spm_gx_hdm';
     M(1).f  = 'spm_fx_hdm';
     M(1).pE = pE;
     M(1).pC = pC;
-    M(1).gE = 7;
-    M(1).gC = 1/2;
+    M(1).W  = exp(8);
     M(1).V  = exp(4);
 
     % level 2
@@ -53,19 +51,24 @@ if DEMO
     M(1).E.linear = 1;
     M(1).E.n  = 4;
     M(1).E.nD = 1;
-    M(1).E.nN = 8;
-    M(1).E.s  = 1/4;
+    M(1).E.nE = 16;
+    M(1).E.nN = 16;
+    M(1).E.s  = 1/2;
 
-    % get causes (i.e. experimental inputs)
-    %----------------------------------------------------------------------
-    t     = fix(linspace(1,length(U.u),360));
-    U     = U.u(t(T),:)';
+    % Decimate U.u from micro-time
+    % ---------------------------------------------------------------------
+    Dy  = spm_dctmtx(size(Y.y,1),size(Y.y,1));
+    Du  = spm_dctmtx(size(U.u,1),size(Y.y,1));
+    Dy  = Dy*sqrt(size(Y.y,1)/size(U.u,1));
+    u   = Dy*(Du'*U.u);
+    U   = spm_detrend(u(T,:))';
+
 
     % Emprical data
     %----------------------------------------------------------------------
     DEM.M = M;
     DEM.U = U;
-    DEM.Y = 1/2 + Y.y(T,:)'/8;
+    DEM.Y = Y.y(T,:)'/4;
 
     % DEM estimation
     %======================================================================

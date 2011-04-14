@@ -8,6 +8,7 @@ function [DCM] = spm_dcm_erp_results(DCM,Action)
 % FORMAT spm_dcm_erp_results(DCM,'trial-specific effects');
 % FORMAT spm_dcm_erp_results(DCM,'Input');
 % FORMAT spm_dcm_erp_results(DCM,'Response');
+% FORMAT spm_dcm_erp_results(DCM,'Response (image)');
 % FORMAT spm_dcm_erp_results(DCM,'Data');
 %                
 %___________________________________________________________________________
@@ -28,22 +29,29 @@ function [DCM] = spm_dcm_erp_results(DCM,Action)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_dcm_erp_results.m 3653 2009-12-23 20:06:48Z karl $
+% $Id: spm_dcm_erp_results.m 4281 2011-03-31 19:49:57Z karl $
 
 
 % get Action if necessary
 %--------------------------------------------------------------------------
 if nargin < 2
     
-    str{1} = 'ERPs (sources)';
-    str{2} = 'Coupling (A)';
-    str{3} = 'Coupling (B)';
-    str{4} = 'Coupling (C)';
-    str{5} = 'trial-specific effects';
-    str{6} = 'Input';
-    str{7} = 'Response';
-    str{8} = 'Data';
-    Action = str{spm_input('Action',0,'m',str)};
+    str{1} = 'ERPs (mode)';
+    str{2} = 'ERPs (sources)';
+    str{3} = 'Coupling (A)';
+    str{4} = 'Coupling (B)';
+    str{5} = 'Coupling (C)';
+    str{6} = 'trial-specific effects';
+    str{7} = 'Input';
+    str{8} = 'Response';
+    str{9} = 'Response (image)';
+    str{10} = 'Data';
+    
+    s      = listdlg('PromptString','Select an option:',...
+                     'SelectionMode','single',...
+                     'ListString',str);
+                 
+    Action = str{s};
     
 end
     
@@ -434,7 +442,8 @@ case{lower('Response')}
 
             subplot(nt,2,2*i - 0)
             plot(t,DCM.H{i}*U)
-            xlabel('time (ms)')
+            xlabel('channels')
+            ylabel('time (ms)')
             title('Predicted')
             A(end + 1,:) = axis;
         end
@@ -479,7 +488,8 @@ case{lower('Response (image)')}
 
             subplot(nt,2,2*i - 0)
             imagesc([1:ne],t,DCM.H{i}*U)
-            xlabel('time (ms)')
+            xlabel('channels')
+            ylabel('time (ms)')
             title('Predicted')
             axis(A); axis square, grid on
         end

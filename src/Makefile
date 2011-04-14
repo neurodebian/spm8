@@ -3,7 +3,7 @@
 #
 # Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 #
-# $Id: Makefile 3251 2009-07-06 17:29:44Z guillaume $
+# $Id: Makefile 4199 2011-02-10 20:07:17Z guillaume $
 #
 ###############################################################################
 #
@@ -65,6 +65,9 @@ all: verb.$(SUF) $(SPMMEX) verb.end
 
 clean: verb.clean
 	$(DEL) $(OBS)
+ifeq (mex,$(SUF))
+	$(DEL) $(subst .$(SUF),.o,$(SPMMEX)) spm_matfuns.o
+endif
 
 distclean: clean verb.distclean
 	$(DEL) $(SPMMEX) spm_vol_utils.$(SUF).a
@@ -390,7 +393,7 @@ verb.mexs64:
 verb.mex:
 	@ echo "_____________________________________________________________"
 	@ echo ""
-	@ echo "        Octave compilation"
+	@ echo "        ${PLATFORM} compilation (`octave -v | head -n 1`)"
 	@ echo "_____________________________________________________________"
 	@ echo ""
 

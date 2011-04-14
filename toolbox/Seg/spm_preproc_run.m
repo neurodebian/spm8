@@ -18,21 +18,24 @@ function varargout = spm_preproc_run(job,arg)
 %
 % See the user interface for a description of the fields.
 %_______________________________________________________________________
-% Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
+% Copyright (C) 2008-2011 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_preproc_run.m 3859 2010-05-04 13:43:41Z john $
+% $Id: spm_preproc_run.m 4221 2011-03-01 20:22:52Z guillaume $
 
-if nargin==1,
-    varargout{:} = run_job(job);
-elseif strcmpi(arg,'check'),
-    varargout{:} = check_job(job);
-elseif strcmpi(arg,'vfiles'),
-    varargout{:} = vfiles_job(job);
-elseif strcmpi(arg,'vout'),
-    varargout{:} = vout_job(job);
-else
-    error('Unknown argument ("%s").', arg);
+if nargin == 1, arg = 'run'; end
+
+switch lower(arg)
+    case 'run'
+        varargout{1} = run_job(job);
+    case 'check'
+        varargout{1} = check_job(job);
+    case 'vfiles'
+        varargout{1} = vfiles_job(job);
+    case 'vout'
+        varargout{1} = vout_job(job);
+    otherwise
+        error('Unknown argument ("%s").', arg);
 end
 return
 %_______________________________________________________________________
@@ -162,17 +165,17 @@ return
 
 %_______________________________________________________________________
 function savefields(fnam,p)
-if length(p)>1, error('Can''t save fields.'); end;
+if length(p)>1, error('Can''t save fields.'); end
 fn = fieldnames(p);
-if numel(fn)==0, return; end;
-for i=1:length(fn),
+if numel(fn)==0, return; end
+for i=1:length(fn)
     eval([fn{i} '= p.' fn{i} ';']);
-end;
-if spm_matlab_version_chk('7') >= 0
+end
+if spm_check_version('matlab','7') >= 0
     save(fnam,'-V6',fn{:});
 else
     save(fnam,fn{:});
-end;
+end
 
 return;
 %_______________________________________________________________________

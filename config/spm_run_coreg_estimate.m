@@ -6,24 +6,26 @@ function out = spm_run_coreg_estimate(varargin)
 % job    - harvested job data structure (see matlabbatch help)
 % Output:
 % out    - computation results, usually a struct variable.
-%_______________________________________________________________________
+%__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
-% $Id: spm_run_coreg_estimate.m 2187 2008-09-25 11:50:50Z volkmar $
+% $Id: spm_run_coreg_estimate.m 4161 2011-01-13 13:44:37Z volkmar $
 
 job = varargin{1};
-%disp(job);
-%disp(job.eoptions);
+if isempty(job.other{1})
+    job.other = {};
+end
 
-x  = spm_coreg(strvcat(job.ref), strvcat(job.source),job.eoptions);
-M  = inv(spm_matrix(x));
-PO = strvcat(strvcat(job.source),strvcat(job.other));
-MM = zeros(4,4,size(PO,1));
-for j=1:size(PO,1),
-    MM(:,:,j) = spm_get_space(deblank(PO(j,:)));
-end;
-for j=1:size(PO,1),
-    spm_get_space(deblank(PO(j,:)), M*MM(:,:,j));
-end;
-out.cfiles = cellstr(PO);
-return;
+x  = spm_coreg(char(job.ref), char(job.source), job.eoptions);
+
+M  = spm_matrix(x);
+PO = [job.source(:); job.other(:)];
+MM = zeros(4,4,numel(PO));
+for j=1:numel(PO)
+    MM(:,:,j) = spm_get_space(PO{j});
+end
+for j=1:numel(PO)
+    spm_get_space(PO{j}, M\MM(:,:,j));
+end
+
+out.cfiles = PO;

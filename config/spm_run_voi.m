@@ -10,7 +10,7 @@ function out = spm_run_voi(job)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Guillaume Flandin
-% $Id: spm_run_voi.m 3780 2010-03-15 17:15:00Z guillaume $
+% $Id: spm_run_voi.m 4269 2011-03-29 16:03:43Z guillaume $
 
 fprintf('## Note: this VOI facility is in a beta version.      ##\n');
 fprintf('## Interface and features might change in the future. ##\n');
@@ -65,7 +65,9 @@ xSPM.XYZmm = XYZmm;
 xSPM.XYZ   = XYZ;
 xSPM.M     = SPM.xVol.M; % irrelevant here
 
+if ~isempty(xY.Ic), cwd = pwd; cd(SPM.swd); end % to find beta images
 [Y,xY]     = spm_regions(xSPM,SPM,[],xY);
+if  ~isempty(xY.Ic), cd(cwd); end
 
 %-Export results
 %--------------------------------------------------------------------------
@@ -185,7 +187,8 @@ catch
     error('The SPM index does not correspond to a Thresholded SPM ROI.');
 end
 [mySPM, xSPM] = getSPM(job.roi{m}.spm);
-XYZ           = SPM.xVol.iM(1:3,:)*[xSPM.XYZmm;ones(1,size(xSPM.XYZmm,2))];
+XYZmm         = xSPM.XYZmm;
+XYZ           = SPM.xVol.iM(1:3,:)*[XYZmm;ones(1,size(XYZmm,2))];
 Z             = xSPM.Z;
 if ~isempty(e)
     R         = spm_sample_vol(uint8(roi_eval(voi,e)), ...
@@ -194,7 +197,7 @@ if ~isempty(e)
     XYZmm     = xSPM.XYZmm(:,R);
     Z         = xSPM.Z(R);
 end
-[N Z M A]     = spm_max(Z,XYZ);
+[N, Z, M]     = spm_max(Z,XYZ);
 if isempty(Z)
     warning('No voxel survived. Default to user-specified centre.');
     return
@@ -207,8 +210,8 @@ switch mv
         nc    = SPM.xVol.M(1:3,:)*[M(:,j);1];
         str   = sprintf(['centre moved to global maxima ' str],nc);
     case 'local'
-        XYZ   = SPM.xVol.M(1:3,:)*[M;ones(1,size(M,2))];
-        nc    = spm_XYZreg('NearestXYZ',c,XYZ);
+        XYZmm = SPM.xVol.M(1:3,:)*[M;ones(1,size(M,2))];
+        nc    = spm_XYZreg('NearestXYZ',c,XYZmm);
         str   = sprintf(['centre moved from ' str ' to ' str],c,nc);
     case 'supra'
         nc    = spm_XYZreg('NearestXYZ',c,XYZmm);

@@ -46,7 +46,6 @@ for k = 1:numel(item.cfg_item.val)
     % find field in val that corresponds to one of the branch vals
     vi = strcmp(gettag(item.cfg_item.val{k}), vtags);
     if any(vi) % field names are unique, so there will be at most one match
-% [DiN] cfg_files subsasgn ERROR
         item.cfg_item.val{k} = initialise(item.cfg_item.val{k}, ...
             val.(vtags{vi}), dflag);
     end;
