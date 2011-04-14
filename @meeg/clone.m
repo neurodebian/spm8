@@ -11,7 +11,7 @@ function new = clone(this, fnamedat, dim, reset)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Stefan Kiebel, Vladimir Litvak
-% $Id: clone.m 3807 2010-04-06 19:29:08Z vladimir $
+% $Id: clone.m 4207 2011-02-22 10:48:36Z christophe $
 
 if nargin < 4
     reset = 0;
@@ -32,11 +32,26 @@ new = this;
 if isempty(pth)
     pth = this.path;
 end
-newFileName = [fullfile(pth,fname),ext];
+newFileName = [fullfile(pth,fname),'.dat'];
 % copy the file_array
 d = this.data.y; % 
 d.fname = newFileName;
-d.dim = dim; 
+dim_o = d.dim;
+
+% This takes care of an issue specific to data files with a scaling factor
+% which are not officially supported in SPM8 (float without scaling).
+% Also assuming scaling is the *same* for all channels...
+if dim(1)>dim_o(1) && length(d.scl_slope)>1
+    % adding channel to montage and scl_slope defined for old montage
+    %       -> need to increase size of scl_slope
+    v_slope = mode(d.scl_slope);
+    if length(v_slope)>1
+        warning(['Trying to guess the scaling factor for new channels.',...
+            ' This factor might be wrong now.']);        
+    end
+    d.scl_slope = [d.scl_slope' ones(1,dim(1)-dim_o(1))*v_slope]';
+end
+d.dim = dim;
 
 % physically initialise file
 if length(dim) == 3

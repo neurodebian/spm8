@@ -141,8 +141,9 @@ M.x   = x;
 M.f   = f;
 M.m   = size(M.pE.C,2);
 M.g   = {};
+M.ons = 32*ones(M.m,1);
 
-try, M.ons; catch M.ons = 32; end
+    
  
 % Volterra Kernels
 %==========================================================================
@@ -226,6 +227,7 @@ end
 %--------------------------------------------------------------------------
 % 'ERP'    - (linear second order NMM slow)
 % 'SEP'    - (linear second order NMM fast)
+% 'CMC'    - (linear second order NMM Canonical microcircuit)
 % 'LFP'    - (linear second order NMM self-inhibition)
 % 'NMM'    - (nonlinear second order NMM first-order moments)
 % 'MFM'    - (nonlinear second order NMM second-order moments)
@@ -239,9 +241,10 @@ end
 switch model
     case{'ERP'}, set(handles.model,'Value',1);
     case{'SEP'}, set(handles.model,'Value',2);
-    case{'LFP'}, set(handles.model,'Value',3);
-    case{'NMM'}, set(handles.model,'Value',4);
-    case{'MFM'}, set(handles.model,'Value',5);
+    case{'CMC'}, set(handles.model,'Value',3);
+    case{'LFP'}, set(handles.model,'Value',4);
+    case{'NMM'}, set(handles.model,'Value',5);
+    case{'MFM'}, set(handles.model,'Value',6);
     otherwise
 end
 
@@ -254,7 +257,9 @@ catch
 end
 pE = handles.DCM.M.pE;
 pC = handles.DCM.M.pC;
-pC = spm_unvec(diag(pC),pE);
+try
+    pC = spm_unvec(diag(pC),pE);
+end
 
 % display connection switches later
 %--------------------------------------------------------------------------
@@ -322,7 +327,7 @@ for f = 1:length(F)
                 'Units','Normalized',...
                 'Position',[x y sx sy],...
                 'Style','edit',...
-                'String',sprintf('%-4.2f',P(i)),...
+                'String',sprintf('%-4.2f',full(P(i))),...
                 'enable','on',...
                 'Tag','tmp',...
                 'BackgroundColor',color{1 + ~eval(sprintf('pC.%s(%i)',F{f},i))},...
@@ -342,7 +347,7 @@ for f = 1:length(F)
                     'Units','Normalized',...
                     'Position',[x y sx sy],...
                     'Style','edit',...
-                    'String',sprintf('%-4.2f',P(i,j)),...
+                    'String',sprintf('%-4.2f',full(P(i,j))),...
                     'enable','on',...
                     'Tag','tmp',...
                     'BackgroundColor',color{1 + ~eval(sprintf('pC.%s(%i,%i)',F{f},i,j))},...

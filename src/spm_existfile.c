@@ -1,15 +1,16 @@
 /*
- * $Id: spm_existfile.c 2267 2008-09-30 21:13:55Z guillaume $
+ * $Id: spm_existfile.c 4145 2010-12-23 15:18:30Z guillaume $
  * Guillaume Flandin
  */
  
 #define _FILE_OFFSET_BITS 64
 
 #include "mex.h"
+#include <stdio.h>
 
 void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
 {
-    bool status    = false;
+    int status     = 0;
     char *filename = NULL;
     FILE *fid      = NULL;
     
@@ -23,7 +24,7 @@ void mexFunction(int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[])
         fid = fopen(filename,"r");
         if (fid != NULL)
         {
-            status = true;
+            status = 1;
             fclose(fid);
         }
         mxFree(filename);

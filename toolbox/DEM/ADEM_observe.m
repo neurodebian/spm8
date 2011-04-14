@@ -1,4 +1,4 @@
-% This demo illustrates action-observation using synthetics writing under 
+% This demo illustrates action-observation using synthetic writing under 
 % active inference. It shows how expectations about hidden states can be 
 % both cause and consequence of observed action (of self and others 
 % respectively). We first illustrate the generation of behaviour using a 
@@ -12,7 +12,7 @@
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: ADEM_observe.m 3977 2010-07-08 14:14:35Z karl $
+% $Id: ADEM_observe.m 4170 2011-01-24 18:37:42Z karl $
  
  
 % hidden causes and states
@@ -174,7 +174,7 @@ axis square tight
 
 % coherence analysis
 %==========================================================================
-spm_figure('GetWin','Figure 4')
+spm_figure('GetWin','Figure 4');
 
 T  = 16;
 xe = DEM.qU.w{1}(5:end,T:end);      % prediction error on attractor states

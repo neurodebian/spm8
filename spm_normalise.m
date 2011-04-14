@@ -120,7 +120,7 @@ function params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_normalise.m 3756 2010-03-05 18:43:37Z guillaume $
+% $Id: spm_normalise.m 4185 2011-02-01 18:46:18Z guillaume $
 
 
 if nargin<2, error('Incorrect usage.'); end;
@@ -140,15 +140,15 @@ if ischar(VWG), VWG=spm_vol(VWG); end;
 if ischar(VWF), VWF=spm_vol(VWF); end;                                                                     
 
 
-def_flags = struct('smosrc',8,'smoref',0,'regtype','mni',...
-    'cutoff',30,'nits',16,'reg',0.1,'graphics',1);
+def_flags          = spm_get_defaults('normalise.estimate');
+def_flags.graphics = 1;
 if nargin < 6,
     flags = def_flags;
 else
     fnms  = fieldnames(def_flags);
     for i=1:length(fnms),
         if ~isfield(flags,fnms{i}),
-            flags = setfield(flags,fnms{i},getfield(def_flags,fnms{i}));
+            flags.(fnms{i}) = def_flags.(fnms{i});
         end;
     end;
 end;
@@ -172,7 +172,7 @@ aflags.sep = max(aflags.sep,max(sqrt(sum(VG(1).mat(1:3,1:3).^2))));
 aflags.sep = max(aflags.sep,max(sqrt(sum(VF(1).mat(1:3,1:3).^2))));
 
 M         = eye(4); %spm_matrix(prms');
-spm_chi2_plot('Init','Affine Registration','Mean squared difference','Iteration');
+spm_plot_convergence('Init','Affine Registration','Mean squared difference','Iteration');
 [M,scal]  = spm_affreg(VG1, VF1, aflags, M);
  
 fprintf('Fine Affine Registration..\n');
@@ -181,7 +181,7 @@ aflags.WF  = VWF;
 aflags.sep = aflags.sep/2;
 [M,scal]   = spm_affreg(VG1, VF1, aflags, M,scal);
 Affine     = inv(VG(1).mat\M*VF1(1).mat);
-spm_chi2_plot('Clear');
+spm_plot_convergence('Clear');
 
 % Basis function Normalisation
 %-----------------------------------------------------------------------
@@ -211,7 +211,7 @@ if isfield(VF,'dat'), VF = rmfield(VF,'dat'); end;
 if isfield(VG,'dat'), VG = rmfield(VG,'dat'); end;
 if ~isempty(matname),
     fprintf('Saving Parameters..\n');
-    if spm_matlab_version_chk('7') >= 0,
+    if spm_check_version('matlab','7') >= 0,
         save(matname,'-V6','Affine','Tr','VF','VG','flags');
     else
         save(matname,'Affine','Tr','VF','VG','flags');

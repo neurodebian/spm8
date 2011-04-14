@@ -63,7 +63,7 @@ function varargout=spm(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes
-% $Id: spm.m 3958 2010-06-30 16:24:46Z guillaume $
+% $Id: spm.m 4178 2011-01-27 15:12:53Z guillaume $
 
 
 %=======================================================================
@@ -434,7 +434,7 @@ spm_get_defaults('modality',Modality);
 %-----------------------------------------------------------------------
 if strcmpi(Modality,'EEG') && ~isdeployed
     addpath(fullfile(spm('Dir'),'external','fieldtrip'));
-    fieldtripdefs;
+    ft_defaults;
     addpath(fullfile(spm('Dir'),'external','bemcp'));
     addpath(fullfile(spm('Dir'),'external','ctf'));
     addpath(fullfile(spm('Dir'),'external','eeprobe'));
@@ -444,6 +444,16 @@ if strcmpi(Modality,'EEG') && ~isdeployed
     addpath(fullfile(spm('Dir'),'toolbox', 'Neural_Models'));
     addpath(fullfile(spm('Dir'),'toolbox', 'Beamforming'));
     addpath(fullfile(spm('Dir'),'toolbox', 'MEEGtools'));
+end
+
+%-Turn output pagination off in Octave
+%-----------------------------------------------------------------------
+if strcmpi(spm_check_version,'octave')
+    try
+        more('off');
+        page_screen_output(false);
+        page_output_immediately(true);
+    end
 end
 
 %-Return defaults variable if asked
@@ -532,14 +542,32 @@ if nargin<2, Vis='on'; else Vis=varargin{2}; end
 %-Close any existing 'Interactive' 'Tag'ged windows
 %-----------------------------------------------------------------------
 delete(spm_figure('FindWin','Interactive'))
-Finter = openfig(fullfile(spm('Dir'),'spm_Interactive.fig'),'new','invisible');
-set(Finter,'name',spm('Ver'));
-S0 = spm('WinSize','0',1);
-SI = spm('WinSize','I');
-set(Finter,'Units','pixels', 'Position',[S0(1) S0(2) 0 0] +  SI);
-set(Finter,'Visible',Vis);
-varargout = {Finter};
 
+%-Create SPM Interactive window
+%-----------------------------------------------------------------------
+FS     = spm('FontSizes');
+PF     = spm_platform('fonts');
+S0     = spm('WinSize','0',1);
+SI     = spm('WinSize','I');
+Finter = figure('IntegerHandle','off',...
+    'Tag','Interactive',...
+    'Name',spm('Ver'),...
+    'NumberTitle','off',...
+    'Units','pixels',...
+    'Position',[S0(1) S0(2) 0 0] +  SI,...
+    'Resize','on',...
+    'Color',[1 1 1]*.8,...
+    'MenuBar','none',...
+    'DefaultTextFontName',PF.helvetica,...
+    'DefaultTextFontSize',FS(10),...
+    'DefaultAxesFontName',PF.helvetica,...
+    'DefaultUicontrolBackgroundColor',[1 1 1]*.7,...
+    'DefaultUicontrolFontName',PF.helvetica,...
+    'DefaultUicontrolFontSize',FS(10),...
+    'DefaultUicontrolInterruptible','on',...
+    'Renderer','painters',...
+    'Visible',Vis);
+varargout = {Finter};
 
 %=======================================================================
 case 'fnuisetup'                %-Robust UI setup for main SPM functions
@@ -793,15 +821,7 @@ if isempty(SPMdir)             %-Not found or full pathname given
         error(['Can''t find ',Mfile,' on MATLABPATH']);
     end
 end
-SPMdir = fileparts(SPMdir);
-
-% if isdeployed
-%     ind = strfind(SPMdir,'_mcr')-1;
-%     if ~isempty(ind)
-%         % MATLAB 2008a/2009a doesn't need this
-%         SPMdir = fileparts(SPMdir(1:ind(1)));
-%     end
-% end
+SPMdir    = fileparts(SPMdir);
 varargout = {SPMdir};
 
 
@@ -938,14 +958,15 @@ case 'cmdline'                                  %-SPM command line mode?
 %-----------------------------------------------------------------------
 if nargin<2, CmdLine=[]; else CmdLine=varargin{2}; end
 if isempty(CmdLine)
-    defaults = spm('getglobal','defaults');
-    if isfield(defaults,'cmdline')
-        CmdLine = defaults.cmdline;
-    else
+    try
+        CmdLine = spm_get_defaults('cmdline');
+    catch
         CmdLine = 0;
     end
 end
-varargout = {CmdLine || (get(0,'ScreenDepth')==0)};
+varargout = { CmdLine | ...
+              (get(0,'ScreenDepth')==0) | ...
+              strcmpi(spm_check_version,'octave') };
 
 
 %=======================================================================
@@ -1006,7 +1027,7 @@ case 'pointer'                 %-Set mouse pointer in all MATLAB windows
 % spm('Pointer',Pointer)
 %-----------------------------------------------------------------------
 if nargin<2, Pointer='Arrow'; else  Pointer=varargin{2}; end
-set(get(0,'Children'),'Pointer',Pointer)
+set(get(0,'Children'),'Pointer',lower(Pointer))
 
 
 %=======================================================================
@@ -1148,7 +1169,14 @@ v = SPM_VER;
 if isempty(SPM_VER) || (nargin > 0 && ReDo)
     v = struct('Name','','Version','','Release','','Date','');
     try
-        fid = fopen(fullfile(spm('Dir'),'Contents.m'),'rt');
+        if isdeployed
+            % in deployed mode, M-files are encrypted
+            % (even if first two lines of Contents.m "should" be preserved)
+            vfile = fullfile(spm('Dir'),'Contents.txt');
+        else
+            vfile = fullfile(spm('Dir'),'Contents.m');
+        end
+        fid = fopen(vfile,'rt');
         if fid == -1, error(str); end
         l1 = fgetl(fid); l2 = fgetl(fid);
         fclose(fid);
@@ -1157,16 +1185,7 @@ if isempty(SPM_VER) || (nargin > 0 && ReDo)
         v.Name = l1; v.Date = t{4};
         v.Version = t{2}; v.Release = t{3}(2:end-1);
     catch
-        if isdeployed
-            % in deployed mode, M-files are encrypted
-            % (but first two lines of Contents.m should be preserved)
-            v.Name    = 'Statistical Parametric Mapping';
-            v.Version = '8';
-            v.Release = 'SPM8';
-            v.Date    = date;
-        else
-            error('Can''t obtain SPM Revision information.');
-        end
+        error('Can''t obtain SPM Revision information.');
     end
     SPM_VER = v;
 end

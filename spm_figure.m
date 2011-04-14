@@ -55,7 +55,7 @@ function varargout=spm_figure(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes
-% $Id: spm_figure.m 3953 2010-06-28 16:58:48Z guillaume $
+% $Id: spm_figure.m 4272 2011-03-29 17:39:38Z guillaume $
 
 
 %==========================================================================
@@ -155,7 +155,10 @@ function varargout=spm_figure(varargin)
 % Creates toolbar in figure F (defaults to gcf). F can be a 'Tag'
 %
 % FORMAT spm_figure('ColorMap')
-% Callback for "ColorMap" buttons
+% Callback for "ColorMap" menu
+%
+% FORMAT spm_figure('FontSize')
+% Callback for "FontSize" menu
 %__________________________________________________________________________
 
 
@@ -296,7 +299,7 @@ else
     end 
 end
 set(F,'Pointer','Arrow')
-if ~isdocked, movegui(F); end
+if ~isdocked && ~spm('CmdLine'), movegui(F); end
 
 %==========================================================================
 case 'close'
@@ -359,25 +362,26 @@ end
 
 %-Print
 if ~iPaged
-    spm_print(fname)
+    spm_print(fname,F);
 else
     hPg    = get(hNextPage,'UserData');
     Cpage  = get(hPageNo,  'UserData');
     nPages = size(hPg,1);
 
-    set([hNextPage,hPrevPage,hPageNo],'Visible','off')
+    set([hNextPage,hPrevPage,hPageNo],'Visible','off');
     if Cpage~=1
-        set(hPg{Cpage,1},'Visible','off'), end
+        set(hPg{Cpage,1},'Visible','off');
+    end
     for p = 1:nPages
         set(hPg{p,1},'Visible','on');
-        spm_print(fname);
-        set(hPg{p,1},'Visible','off')
+        spm_print(fname,F);
+        set(hPg{p,1},'Visible','off');
     end
-    set(hPg{Cpage,1},'Visible','on')
-    set([hNextPage,hPrevPage,hPageNo],'Visible','on')
+    set(hPg{Cpage,1},'Visible','on');
+    set([hNextPage,hPrevPage,hPageNo],'Visible','on');
 end
-if ~isempty(H), set(H,{'Units'},un); end;
-set(0,'CurrentFigure',cF)
+if ~isempty(H), set(H,{'Units'},un); end
+set(0,'CurrentFigure',cF);
 
 %==========================================================================
 case 'printto'
@@ -731,13 +735,17 @@ uimenu(t1,    'Label','&Specify File...', 'HandleVisibility','off', ...
 
 %-Copy Figure
 if ispc
-    uimenu(t0, 'Label','&Copy Figure', 'HandleVisibility','off',...
+    uimenu(t0, 'Label','Co&py Figure', 'HandleVisibility','off',...
        'CallBack','editmenufcn(gcbf,''EditCopyFigure'')');
 end
 
 %-Clear Menu
-uimenu(t0,    'Label','C&lear Figure', 'HandleVisibility','off', ...
+uimenu(t0,    'Label','&Clear Figure', 'HandleVisibility','off', ...
     'CallBack','spm_figure(''Clear'',gcbf)');
+
+%-Close non-SPM figures
+uimenu(t0,    'Label','C&lose non-SPM Figures', 'HandleVisibility','off', ...
+    'CallBack',@myclosefig);
 
 %-Colour Menu
 t1=uimenu(t0, 'Label','C&olours',  'HandleVisibility','off','Separator','on');
@@ -754,6 +762,11 @@ t2=uimenu(t1, 'Label','Effects');
 uimenu(t2,    'Label','Invert',    'CallBack','spm_figure(''ColorMap'',''invert'')');
 uimenu(t2,    'Label','Brighten',  'CallBack','spm_figure(''ColorMap'',''brighten'')');
 uimenu(t2,    'Label','Darken',    'CallBack','spm_figure(''ColorMap'',''darken'')');
+
+%-Font Size Menu
+t1=uimenu(t0, 'Label','&Font Size', 'HandleVisibility','off');
+uimenu(t1, 'Label','&Increase', 'CallBack','spm_figure(''FontSize'',1)');
+uimenu(t1, 'Label','&Decrease', 'CallBack','spm_figure(''FontSize'',-1)');
 
 %-Satellite Table
 uimenu(t0,    'Label','&Results Table', 'HandleVisibility','off', ...
@@ -816,6 +829,18 @@ case 'darken'
 otherwise
     error('Illegal ColAction specification');
 end
+
+%==========================================================================
+case 'fontsize'
+%==========================================================================
+% spm_figure('FontSize',sz)
+
+if nargin<2, sz=0; else sz=varargin{2}; end
+
+h  = [get(0,'CurrentFigure') spm_figure('FindWin','Satellite')];
+h  = findall(h,'type','text');
+fs = get(h,'fontsize');
+set(h,{'fontsize'},cellfun(@(x) x+sz,fs,'UniformOutput',false)) ;
 
 %==========================================================================
 otherwise
@@ -911,6 +936,16 @@ set(h,'WindowStyle','docked');
 try, pause(0.5), desktop.setGroupDocked(group,false); end
 
 %==========================================================================
+function myclosefig(obj,evt)
+%==========================================================================
+hMenu = spm_figure('FindWin','Menu');
+hInt  = spm_figure('FindWin','Interactive');
+hGra  = spm_figure('FindWin','Graphics');
+h     = setdiff(findobj(get(0,'children'),'flat','visible','on'), ...
+    [hMenu hInt hGra gcf]);
+close(h,'force');
+
+%==========================================================================
 function copy_menu(F,G)
 %==========================================================================
 handles = findall(allchild(F),'Flat','Type','uimenu','Visible','on');
@@ -982,7 +1017,7 @@ text(0.5,0.40,[v ' (v' r ')'],'Parent',a,'HorizontalAlignment','center',...
     'Color',[1 1 1]);
 text(0.5,0.30,'Wellcome Trust Centre for Neuroimaging','Parent',a,...
     'HorizontalAlignment','center','Color',[1 1 1],'FontWeight','Bold');
-text(0.5,0.25,['Copyright (C) 1991,1994-2003, 2005-' datestr(now,'yyyy')],...
+text(0.5,0.25,['Copyright (C) 1991,1994-' datestr(now,'yyyy')],...
     'Parent',a,'HorizontalAlignment','center','Color',[1 1 1]);
 text(0.5,0.20,'http://www.fil.ion.ucl.ac.uk/spm/','Parent',a,...
     'HorizontalAlignment','center','Color',[1 1 1],...
@@ -998,7 +1033,10 @@ function myscroll(obj,evt)
 %==========================================================================
 ax = findobj(gcf,'Tag','textcont');
 cla(ax);
-authors = spm_authors;
+[current, previous] = spm_authors;
+authors = {'*SPM8*' current{:} '' ...
+           '*Previous versions*' previous{:} '' ...
+           '*Thanks to the SPM community*'};
 x = 0.2;
 h = [];
 for i=1:numel(authors)
@@ -1033,43 +1071,3 @@ else
     c = [1 1 1] - 6*abs(0.4-x);
 end
 c(c<0) = 0; c(c>1) = 1;
-
-%==========================================================================
-function authors = spm_authors
-%==========================================================================
-authors = {...
-'*SPM8*'
-'John Ashburner'
-'Gareth Barnes'
-'Chun-Chuan Chen'
-'Justin Chumbley'
-'Jean Daunizeau'
-'Guillaume Flandin'
-'Karl Friston'
-'Darren Gitelman'
-'Volkmar Glauche'
-'Lee Harrison'
-'Rik Henson'
-'Chloe Hutton'
-'Maria Joao Rosa'
-'Stefan Kiebel'
-'James Kilner'
-'Vladimir Litvak'
-'Rosalyn Moran'
-'Tom Nichols'
-'Robert Oostenveld'
-'Will Penny'
-'Christophe Phillips'
-'Klaas Enno Stephan'
-''
-'*Previous versions*'
-'Matthew Brett'
-'Christian Buechel'
-'Jon Heather'
-'Andrew Holmes'
-'Jeremie Mattout'
-'Jean-Baptiste Poline'
-'Keith Worsley'
-''
-'*Thanks to the SPM community*'
-};

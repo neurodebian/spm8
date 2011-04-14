@@ -7,9 +7,10 @@ function out = spm_dicom_convert(hdr,opts,root_dir,format)
 %        'all'      - all DICOM files [default]
 %        'mosaic'   - the mosaic images
 %        'standard' - standard DICOM files
-%        'spect'    - SIEMENS Spectroscopy DICOMs (position only)
-%                     This will write out a mask image volume with 1's
-%                     set at the position of spectroscopy voxel(s).
+%        'spect'    - SIEMENS Spectroscopy DICOMs (some formats only)
+%                     This will write out a 5D NIFTI containing real and
+%                     imaginary part of the spectroscopy time points at the
+%                     position of spectroscopy voxel(s).
 %        'raw'      - convert raw FIDs (not implemented)
 % root_dir - 'flat' - do not produce file tree [default]
 %            With all other options, files will be sorted into
@@ -17,7 +18,9 @@ function out = spm_dicom_convert(hdr,opts,root_dir,format)
 %            'date_time'  - Place files under ./<StudyDate-StudyTime>
 %            'patid'      - Place files under ./<PatID>
 %            'patid_date' - Place files under ./<PatID-StudyDate>
-%            'name'       - Place files under ./<PatName>
+%            'patname'    - Place files under ./<PatName>
+%            'series'     - Place files in series folders, without
+%                           creating patient folders
 % format - output format
 %          'img' Two file (hdr+img) NIfTI format [default]
 %          'nii' Single file NIfTI format
@@ -31,7 +34,7 @@ function out = spm_dicom_convert(hdr,opts,root_dir,format)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner & Jesper Andersson
-% $Id: spm_dicom_convert.m 3934 2010-06-17 14:58:25Z guillaume $
+% $Id: spm_dicom_convert.m 4213 2011-02-23 19:18:30Z john $
 
 
 if nargin<2, opts     = 'all'; end
@@ -55,7 +58,7 @@ if (strcmp(opts,'all') || strcmp(opts,'spect')) && ~isempty(spect),
     fspe = convert_spectroscopy(spect,root_dir,format);
 end;
 
-out.files = {fmos{:} fstd{:} fspe{:}};
+out.files = [fmos fstd fspe];
 if isempty(out.files)
     out.files = {''};
 end;
@@ -108,7 +111,7 @@ for i=1:length(hdr),
         volume(:,:,j) = img;
     end;
     dim = size(volume);
-    dt  = [spm_type('int16') spm_platform('bigend')];
+    dt  = determine_datatype(hdr{1});
 
     % Orientation information
     %-------------------------------------------------------------------
@@ -484,7 +487,7 @@ nc = hdr{1}.Columns;
 nr = hdr{1}.Rows;
 
 dim    = [nc nr length(hdr)];
-dt     = [spm_type('int16') spm_platform('bigend')];
+dt     = determine_datatype(hdr{1});
 
 % Orientation information
 %-------------------------------------------------------------------
@@ -551,9 +554,57 @@ end;
 %-------------------------------------------------------------------
 spm_progress_bar('Init',length(hdr),['Writing ' fname], 'Planes written');
 N      = nifti;
-pinfo  = [1 0];
-if isfield(hdr{1},'RescaleSlope'),      pinfo(1) = hdr{1}.RescaleSlope;     end;
-if isfield(hdr{1},'RescaleIntercept'),  pinfo(2) = hdr{1}.RescaleIntercept; end;
+pinfos = [ones(length(hdr),1) zeros(length(hdr),1)];
+for i=1:length(hdr)
+    if isfield(hdr{i},'RescaleSlope'),     pinfos(i,1) = hdr{i}.RescaleSlope;     end 
+    if isfield(hdr{i},'RescaleIntercept'), pinfos(i,2) = hdr{i}.RescaleIntercept; end
+end
+
+if any(any(diff(pinfos,1))),
+    % Ensure random numbers are reproducible (see later)
+    % when intensities are dithered to prevent aliasing effects.
+    rand('state',0);
+end
+
+volume = zeros(dim);
+for i=1:length(hdr),
+    plane = read_image_data(hdr{i});
+
+    if any(any(diff(pinfos,1))),
+        % This is to prevent aliasing effects in any subsequent histograms
+        % of the data (eg for mutual information coregistration).
+        % It's a bit inelegant, but probably necessary for when slices are
+        % individually rescaled.
+        plane = double(plane) + rand(size(plane)) - 0.5;
+    end
+
+    if pinfos(i,1)~=1, plane = plane*pinfos(i,1); end;
+    if pinfos(i,2)~=0, plane = plane+pinfos(i,2); end;
+
+    plane = fliplr(plane);
+    if ~true, plane = flipud(plane); end; % LEFT-HANDED STORAGE
+    volume(:,:,i) = plane;
+    spm_progress_bar('Set',i);
+end;
+
+if ~any(any(diff(pinfos,1))),
+    % Same slopes and intercepts for all slices
+    pinfo = pinfos(1,:);
+else
+    % Variable slopes and intercept (maybe PET/SPECT)
+    mx = max(volume(:));
+    mn = min(volume(:));
+
+    %%  Slope and Intercept
+    %%  32767*pinfo(1) + pinfo(2) = mx
+    %% -32768*pinfo(1) + pinfo(2) = mn
+    % pinfo = ([32767 1; -32768 1]\[mx; mn])';
+
+    % Slope only
+    dt    = 'int16-be';
+    pinfo = [max(mx/32767,-mn/32768) 0];
+end
+
 N.dat  = file_array(fname,dim,dt,0,pinfo(1),pinfo(2));
 N.mat  = mat;
 N.mat0 = mat;
@@ -561,19 +612,6 @@ N.mat_intent  = 'Scanner';
 N.mat0_intent = 'Scanner';
 N.descrip     = descrip;
 create(N);
-volume = zeros(dim);
-
-for i=1:length(hdr),
-    plane = read_image_data(hdr{i});
-
-    if pinfo(1)~=1, plane = plane*pinfo(1); end;
-    if pinfo(2)~=0, plane = plane+pinfo(2); end;
-
-    plane = fliplr(plane);
-    if ~true, plane = flipud(plane); end; % LEFT-HANDED STORAGE
-    volume(:,:,i) = plane;
-    spm_progress_bar('Set',i);
-end;
 N.dat(:,:,:) = volume;
 spm_progress_bar('Clear');
 return;
@@ -609,9 +647,12 @@ end
 %-------------------------------------------------------------------
 nc = get_numaris4_numval(privdat,'Columns');
 nr = get_numaris4_numval(privdat,'Rows');
+% Guess number of timepoints in file - don't know whether this should be
+% 'DataPointRows'-by-'DataPointColumns' or 'SpectroscopyAcquisitionDataColumns'
+ntp = get_numaris4_numval(privdat,'DataPointRows')*get_numaris4_numval(privdat,'DataPointColumns');
 
-dim    = [nc nr numel(hdr)];
-dt     = [spm_type('int16') spm_platform('bigend')];
+dim    = [nc nr numel(hdr) 2 ntp];
+dt     = spm_type('float32'); % Fixed datatype
 
 % Orientation information
 %-------------------------------------------------------------------
@@ -635,18 +676,38 @@ patient_to_tal   = diag([-1 -1 1 1]); % Flip mm coords in x and y directions
 shift_vx         = [eye(4,3) [.5; .5; 0; 1]];
 
 orient           = reshape(get_numaris4_numval(privdat,...
-    'ImageOrientationPatient'),[3 2]);
-try
-    ps(1) = get_numaris4_numval(privdat,...
-        'VoiReadoutFoV');
-    ps(2) = get_numaris4_numval(privdat,...
-        'VoiPhaseFoV');
-catch
-    ps  = get_numaris4_numval(privdat,'PixelSpacing');
+                                               'ImageOrientationPatient'),[3 2]);
+ps               = get_numaris4_numval(privdat,'PixelSpacing');
+if nc*nr == 1
+    % Single Voxel Spectroscopy (based on the following information from SIEMENS)
+    %---------------------------------------------------------------
+    % NOTE: Internally the position vector of the CSI matrix shows to the outer border
+    % of the first voxel. Therefore the position vector has to be corrected.
+    % (Note: The convention of Siemens spectroscopy raw data is in contrast to the
+    %  DICOM standard where the position vector points to the center of the first voxel.)
+    %---------------------------------------------------------------
+    % SIEMENS decides which definition to use based on the contents of the
+    % 'PixelSpacing' internal header field. If it has non-zero values,
+    % assume DICOM convention. If any value is zero, assume SIEMENS
+    % internal convention for this direction.
+    % Note that in SIEMENS code, there is a shift when PixelSpacing is
+    % zero. Here, the shift seems to be necessary when PixelSpacing is
+    % non-zero. This may indicate more fundamental problems with
+    % orientation decoding.
+    if ps(1) == 0 % row
+        ps(1) = get_numaris4_numval(privdat,...
+                                    'VoiPhaseFoV');
+        shift_vx(1,4) = 0;
+    end
+    if ps(2) == 0 % col
+        ps(2) = get_numaris4_numval(privdat,...
+                                    'VoiReadoutFoV');
+        shift_vx(2,4) = 0;
+    end
 end
 pos = get_numaris4_numval(privdat,'ImagePositionPatient');
-
-R  = [orient*diag(ps); 0 0];
+% for some reason, pixel spacing needs to be swapped
+R  = [orient*diag(ps([2 1])); 0 0];
 x1 = [1;1;1;1];
 y1 = [pos; 1];
 
@@ -671,7 +732,6 @@ else
     y2 = [orient*[0;0;z];0];
 end
 dicom_to_patient = [y1 y2 R]/[x1 x2 eye(4,2)];
-warning('Don''t know exactly what positions in spectroscopy files should be - just guessing!')
 mat              = patient_to_tal*dicom_to_patient*shift_vx*analyze_to_dicom;
 
 % Possibly useful information
@@ -695,7 +755,6 @@ end;
 
 % Write the image volume
 %-------------------------------------------------------------------
-spm_progress_bar('Init',length(hdr),['Writing ' fname], 'Planes written');
 N      = nifti;
 pinfo  = [1 0];
 if isfield(hdr{1},'RescaleSlope'),      pinfo(1) = hdr{1}.RescaleSlope;     end;
@@ -706,20 +765,18 @@ N.mat0 = mat;
 N.mat_intent  = 'Scanner';
 N.mat0_intent = 'Scanner';
 N.descrip     = descrip;
+N.extras      = struct('MagneticFieldStrength',...
+                       get_numaris4_numval(privdat,'MagneticFieldStrength'),...
+                       'TransmitterReferenceAmplitude',...
+                       get_numaris4_numval(privdat,'TransmitterReferenceAmplitude'));
 create(N);
-volume = zeros(dim);
 
-for i=1:length(hdr),
-    plane = read_spect_data(hdr{i},privdat);
-    if pinfo(1)~=1, plane = plane*pinfo(1); end;
-    if pinfo(2)~=0, plane = plane+pinfo(2); end;
-    plane = fliplr(plane);
-    if ~true, plane = flipud(plane); end; % LEFT-HANDED STORAGE
-    volume(:,:,i) = plane;
-    spm_progress_bar('Set',i);
-end;
-N.dat(:,:,:) = volume;
-spm_progress_bar('Clear');
+% Read data, swap dimensions
+data = permute(reshape(read_spect_data(hdr{1},privdat),dim([4 5 1 2 3])), ...
+                [3 4 5 1 2]);
+% plane = fliplr(plane);
+
+N.dat(:,:,:,:,:) = data;
 return;
 %_______________________________________________________________________
 
@@ -730,7 +787,11 @@ guff   = {};
 for i=1:length(hdr),
     if ~checkfields(hdr{i},'Modality') || ~(strcmp(hdr{i}.Modality,'MR') ||...
             strcmp(hdr{i}.Modality,'PT') || strcmp(hdr{i}.Modality,'CT'))
-        disp(['Cant find appropriate modality information for "' hdr{i}.Filename '".']);
+        if checkfields(hdr{i},'Modality'),
+            fprintf('File "%s" can not be converted because it is of type "%s", which is not MRI, CT or PET.\n', hdr{i}.Filename, hdr{i}.Modality);
+        else
+            fprintf('File "%s" can not be converted because it does not encode an image.\n', hdr{i}.Filename);
+        end
         guff = [guff(:)',hdr(i)];
     elseif ~checkfields(hdr{i},'StartOfPixelData','SamplesperPixel',...
             'Rows','Columns','BitsAllocated','BitsStored','HighBit','PixelRepresentation'),
@@ -742,7 +803,7 @@ for i=1:length(hdr),
    %    % No documentation about this private field is yet available.
    %    disp('Cant yet convert Phillips Intera DICOM.');
    %    guff = {guff{:},hdr{i}};
-    elseif ~(checkfields(hdr{i},'PixelSpacing','ImagePositionPatient','ImageOrientationPatient')||isfield(hdr{i},'Private_0029_1210')),
+    elseif ~(checkfields(hdr{i},'PixelSpacing','ImagePositionPatient','ImageOrientationPatient')||isfield(hdr{i},'Private_0029_1110')||isfield(hdr{i},'Private_0029_1210')),
         disp(['Cant find "Image Plane" information for "' hdr{i}.Filename '".']);
         guff = [guff(:)',hdr(i)];
     elseif ~checkfields(hdr{i},'PatientID','SeriesNumber','AcquisitionNumber','InstanceNumber'),
@@ -782,7 +843,7 @@ for i=1:length(hdr),
         % NumberOfImagesInMosaic seems to be set to zero for pseudo images
         % containing e.g. online-fMRI design matrices, don't treat them as
         % mosaics
-        standard = {standard{:},hdr{i}};
+        standard = {standard{:}, hdr{i}};
     else
         mosaic = {mosaic{:},hdr{i}};
     end;
@@ -889,11 +950,19 @@ return;
 
 %_______________________________________________________________________
 function img = read_spect_data(hdr,privdat)
-% Image dimensions
-%-------------------------------------------------------------------
-nc = get_numaris4_numval(privdat,'Columns');
-nr = get_numaris4_numval(privdat,'Rows');
-img = ones(nr,nc);
+% Guess number of timepoints in file - don't know whether this should be
+% 'DataPointRows'-by-'DataPointColumns' or 'SpectroscopyAcquisitionDataColumns'
+ntp = get_numaris4_numval(privdat,'DataPointRows')*get_numaris4_numval(privdat,'DataPointColumns');
+% Data is stored as complex float32 values, timepoint by timepoint, voxel
+% by voxel. Reshaping is done in write_spectroscopy_volume.
+if ntp*2*4 ~= hdr.SizeOfCSAData
+    warning([hdr.Filename,': Data size mismatch.']);
+end
+fp = fopen(hdr.Filename,'r','ieee-le');
+fseek(fp,hdr.StartOfCSAData,'bof');
+img = fread(fp,2*ntp,'float32');
+fclose(fp);
+return;
 %_______________________________________________________________________
 
 %_______________________________________________________________________
@@ -1016,7 +1085,7 @@ h = sprintf('%02d', floor(hdr.StudyTime/3600));
 studydate = sprintf('%s_%s-%s', datestr(hdr.StudyDate,'yyyy-mm-dd'), ...
     h,m);
 switch root_dir
-    case 'date_time',
+    case {'date_time','series'}
     id = studydate;
     case {'patid', 'patid_date', 'patname'},
     id = strip_unwanted(hdr.PatientID);
@@ -1035,6 +1104,8 @@ switch root_dir
     case 'patname',
         dname = fullfile(pwd, strip_unwanted(hdr.PatientsName), ...
             id, protname);
+    case 'series',
+        dname = fullfile(pwd, protname);
     otherwise
         error('unknown file root specification');
 end;
@@ -1081,7 +1152,9 @@ function ret = read_ascconv(hdr)
 % ### ASCCONV BEGIN ###
 % and ends with
 % ### ASCCONV END ###
-% It is read by spm_dicom_headers into an entry 'MrProtocol' in CSASeriesHeaderInfo
+% It is read by spm_dicom_headers into an entry 'MrProtocol' in
+% CSASeriesHeaderInfo or into an entry 'MrPhoenixProtocol' in
+% Private_0029_1110 or Private_0029_1120.
 % The additional items are assignments in C syntax, here they are just
 % translated according to
 % [] -> ()
@@ -1091,8 +1164,10 @@ function ret = read_ascconv(hdr)
 ret=struct;
 
 % get ascconv data
-if strcmp(hdr.CSAImageHeaderVersion, 'syngo MR B13')
-    X = hdr.Private_0029_1120;
+if isfield(hdr, 'Private_0029_1110')
+    X = get_numaris4_val(hdr.Private_0029_1110,'MrPhoenixProtocol');
+elseif isfield(hdr, 'Private_0029_1120')
+    X = get_numaris4_val(hdr.Private_0029_1120,'MrPhoenixProtocol');
 else
     X=get_numaris4_val(hdr.CSASeriesHeaderInfo,'MrProtocol');
 end
@@ -1103,10 +1178,10 @@ ascend = strfind(X,'### ASCCONV END ###');
 if ~isempty(ascstart) && ~isempty(ascend)
     tokens = textscan(char(X((ascstart+22):(ascend-1))),'%s', ...
         'delimiter',char(10));
+    tokens{1}=regexprep(tokens{1},{'\[([0-9]*)\]','"(.*)"','0x([0-9a-fA-F]*)'},{'($1+1)','''$1''','hex2dec(''$1'')'});
+    % If everything would evaluate correctly, we could use
+    % eval(sprintf('ret.%s;\n',tokens{1}{:}));
     for k = 1:numel(tokens{1})
-        tokens{1}{k}=regexprep(tokens{1}{k},'\[([0-9]*)\]','($1+1)');
-        tokens{1}{k}=regexprep(tokens{1}{k},'"(.*)"','''$1''');
-        tokens{1}{k}=regexprep(tokens{1}{k},'0x([0-9a-fA-F]*)','hex2dec(''$1'')');
         try
             eval(['ret.' tokens{1}{k} ';']);
         catch
@@ -1115,3 +1190,22 @@ if ~isempty(ascstart) && ~isempty(ascend)
     end;
 end;
 %_______________________________________________________________________
+
+%_______________________________________________________________________
+function dt = determine_datatype(hdr)
+% Determine what datatype to use for NIfTI images
+be = spm_platform('bigend');
+if hdr.HighBit>16
+    if hdr.PixelRepresentation
+        dt  = [spm_type( 'int32') be];
+    else
+        dt  = [spm_type('uint32') be];
+    end
+else
+    if hdr.PixelRepresentation
+        dt  = [spm_type( 'int16') be];
+    else
+        dt  = [spm_type('uint16') be];
+    end
+end
+

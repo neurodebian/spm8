@@ -14,7 +14,7 @@ function spm_plot_ci(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_plot_ci.m 3739 2010-02-26 13:12:44Z karl $
+% $Id: spm_plot_ci.m 4169 2011-01-24 18:34:20Z karl $
 
 % unpack
 %--------------------------------------------------------------------------
@@ -43,7 +43,6 @@ if ~exist('j','var'), j = 1:size(E,1); end
 if ~exist('t','var'), t = 1:size(E,2); end
 if ~exist('s','var'), s = '';          end
 
-
 % order and length of sequence
 %--------------------------------------------------------------------------
 E     = E(j,:);
@@ -58,13 +57,23 @@ if iscell(C)
     end
 else
     if isvector(C)
-        c = ci*sqrt(C(j));
+        c = ci*sqrt(C);
     else
         C = diag(C);
-        c = ci*sqrt(C(j));
+        c = ci*sqrt(C(j,:));
     end
 end
 
+% set plot parameters
+%--------------------------------------------------------------------------
+switch get(gca,'NextPlot')
+    case{lower('add')}
+        col   = [1 1/4 1/4];
+        width = .9;
+    otherwise
+        col   = [1 3/4 3/4];
+        width = .8;
+end
 
 % conditional covariances
 %--------------------------------------------------------------------------
@@ -73,7 +82,7 @@ if N > 1
     % time-series plot
     %======================================================================
     fill([t fliplr(t)],[full(E + c) fliplr(full(E - c))],...
-        [1 1 1]*.8,'EdgeColor',[1 1 1]*.5),hold on
+         [1 1 1]*.8,'EdgeColor',[1 1 1]*.5),hold on
     plot(t,E,s)
     
 elseif n == 2
@@ -90,16 +99,16 @@ else
     %======================================================================
     
     % conditional means
-    %------------------------------------------------------------------
-    bar(E,'Edgecolor',[1 1 1]/2,'Facecolor',[1 1 1]*.8), hold on
-    axis square
+    %----------------------------------------------------------------------
+    bar(E,width,'Edgecolor',[1 1 1]/2,'Facecolor',[1 1 1]*.8), hold on
     box off
     set(gca,'XLim',[0 n + 1])
     
     % conditional variances
-    %------------------------------------------------------------------
+    %----------------------------------------------------------------------
+
     for k = 1:n
-        line([k k], [-1 1]*c(k) + E(k),'LineWidth',4,'Color','r');
+        line([k k], [-1 1]*c(k) + E(k),'LineWidth',4,'Color',col);
     end
 end
 hold off
