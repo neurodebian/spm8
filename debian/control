@@ -83,5 +83,5 @@ Description: analysis of brain imaging data sequences for Matlab
  and MEG data.
  .
  This package provides SPM to be used with Matlab. Note that this package
- depends on Matlab -- a commercial software that needs to be obtain and
+ depends on Matlab -- a commercial software that needs to be obtained and
  installed separately.
