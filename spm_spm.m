@@ -281,9 +281,9 @@ function [SPM] = spm_spm(SPM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Andrew Holmes, Jean-Baptiste Poline & Karl Friston
-% $Id: spm_spm.m 4191 2011-02-03 13:30:02Z guillaume $
+% $Id: spm_spm.m 4515 2011-10-07 18:26:00Z guillaume $
  
-SVNid     = '$Rev: 4191 $';
+SVNid     = '$Rev: 4515 $';
  
 %-Say hello
 %--------------------------------------------------------------------------
@@ -454,10 +454,16 @@ else
     xCon   = spm_FcUtil('Set',Fcname,'F','iX0',iX0,xX.xKXs);
 end
 
-X1o    = spm_FcUtil('X1o', xCon(1),xX.xKXs);
-Hsqr   = spm_FcUtil('Hsqr',xCon(1),xX.xKXs);
-trRV   = spm_SpUtil('trRV',xX.xKXs);
-trMV   = spm_SpUtil('trMV',X1o);
+if ~isempty(xCon(1).c)
+    X1o    = spm_FcUtil('X1o', xCon(1),xX.xKXs);
+    Hsqr   = spm_FcUtil('Hsqr',xCon(1),xX.xKXs);
+    trMV   = spm_SpUtil('trMV',X1o);
+else
+    % Force all voxels to enter non-sphericity
+    trMV   = 1;
+    Hsqr   = Inf;
+end
+trRV       = spm_SpUtil('trRV',xX.xKXs);
 
 % Threshold for voxels entering non-sphericity estimates and prior for PPM
 %----------------------------------------------------------------------
@@ -814,7 +820,8 @@ if ~isfield(xVi,'V')
     if s == 0
         spm('FigName','Stats: no significant voxels',Finter); 
         spm('Pointer','Arrow');
-        if isfield(SPM.xGX,'rg') && ~isempty(SPM.xGX.rg) && ~spm('CmdLine')
+        if isfield(SPM.xGX,'rg') && ~isempty(SPM.xGX.rg) && ...
+                ~spm('CmdLine') && ~isempty(Finter) && ishandle(Finter)
             figure(Finter);
             plot(SPM.xGX.rg);
             title('global mean per volume image');

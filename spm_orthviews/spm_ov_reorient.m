@@ -14,9 +14,9 @@ function ret = spm_ov_reorient(varargin)
 %             help spm_orthviews
 % at the matlab prompt.
 %_____________________________________________________________________________
-% $Id: spm_ov_reorient.m 4205 2011-02-21 15:39:08Z guillaume $
+% $Id: spm_ov_reorient.m 4380 2011-07-05 11:27:12Z volkmar $
 
-rev = '$Revision: 4205 $';
+rev = '$Revision: 4380 $';
 
 global st;
 if isempty(st)
@@ -172,13 +172,16 @@ switch cmd
             end
         end
         st.vols{volhandle}.premul = spm_matrix(-pos');
-        spm_progress_bar('Init', numel(P), 'Reorient', 'Images completed');
-        for k = 1:numel(P)
-            M = spm_get_space(P{k});
-            spm_get_space(P{k},st.vols{volhandle}.premul*M);
-            spm_progress_bar('Set',k);
+        spm_jobman('serial','','spm.util.reorient',P,st.vols{volhandle}.premul);
+        sv = questdlg('Do you want to save the reorientation matrix for future reference?','Save Matrix','Yes','No','Yes');
+        if strcmpi(sv, 'yes')
+            [p n] = spm_fileparts(st.vols{volhandle}.fname);
+            [f,p] = uiputfile(fullfile(p, [n '_reorient.mat']));
+            if ~isequal(f,0)
+                M = st.vols{volhandle}.premul;
+                save(fullfile(p,f),'M');
+            end
         end
-        spm_progress_bar('Clear');
         qu = questdlg({'Image positions are changed!', ...
             'To make sure images are displayed correctly, it is recommended to quit and restart spm_orthviews now.', ...
             'Do you want to quit?'},'Reorient done','Yes','No','Yes');
@@ -195,14 +198,17 @@ switch cmd
         [p n e v] = spm_fileparts(st.vols{volhandle}.fname);
         P = cellstr(spm_select(Inf, 'image', {'Image(s) to reorient'}, '', p));
         if ~isempty(P) && ~isempty(P{1})
-            spm_progress_bar('Init', numel(P), 'Reorient', 'Images completed');
-            for k = 1:numel(P)
-                M = spm_get_space(P{k});
-                spm_get_space(P{k},st.vols{volhandle}.premul*M);
-                spm_progress_bar('Set',k);
-            end;
-            spm_progress_bar('Clear');
+            spm_jobman('serial','','spm.util.reorient',P,st.vols{volhandle}.premul);
             st.vols{volhandle}.reorient.oldpremul = eye(4);
+            sv = questdlg('Do you want to save the reorientation matrix for future reference?','Save Matrix','Yes','No','Yes');
+            if strcmpi(sv, 'yes')
+                [p n] = spm_fileparts(st.vols{volhandle}.fname);
+                [f,p] = uiputfile(fullfile(p, [n '_reorient.mat']));
+                if ~isequal(f,0)
+                    M = st.vols{volhandle}.premul;
+                    save(fullfile(p,f),'M');
+                end
+            end
             qu=questdlg({'Image positions are changed!', ...
                 'To make sure images are displayed correctly, it is recommended to quit and restart spm_orthviews now.', ...
                 'Do you want to quit?'},'Reorient done','Yes','No','Yes');
@@ -216,7 +222,7 @@ switch cmd
     case 'reorient'
         prms=zeros(1,12);
         for k=1:9
-            prms(k) = str2double(get(st.vols{volhandle(1)}.reorient.e(k),'string'));
+            prms(k) = evalin('base',[get(st.vols{volhandle(1)}.reorient.e(k),'string') ';']);
         end;
         switch get(st.vols{volhandle(1)}.reorient.order, 'value')
             case 1,

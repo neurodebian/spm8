@@ -92,7 +92,7 @@ function [Ep,Cp,Eh,F] = spm_nlsi_GN(M,U,Y)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_nlsi_GN.m 4261 2011-03-24 16:39:42Z karl $
+% $Id: spm_nlsi_GN.m 4509 2011-10-04 16:44:54Z guillaume $
  
 % figure (unless disabled)
 %--------------------------------------------------------------------------
@@ -193,7 +193,7 @@ end
 nh    = length(Q);                  % number of precision components
 nt    = length(Q{1});               % number of time bins
 nq    = nr*ns/nt;                   % for compact Kronecker form of M-step
-h     = sparse(nh,1);                % initialise hyperparameters
+h     = sparse(nh,1);               % initialise hyperparameters
  
 % prior moments
 %--------------------------------------------------------------------------
@@ -209,11 +209,12 @@ try
 catch
     dfdu = sparse(ns*nr,0);
 end
+if isempty(dfdu), dfdu = sparse(ns*nr,0); end
  
 % hyperpriors - expectation
 %--------------------------------------------------------------------------
 try
-    hE = M.hE;
+    hE = M.hE(:);
     if length(hE) ~= nh
         hE = hE(1) + sparse(nh,1);
     end
@@ -295,7 +296,7 @@ for k = 1:128
  
         % check for stability
         %------------------------------------------------------------------
-        if norm(J,'inf') > exp(32), break, end
+        if any(isnan(J(:))) || norm(J,'inf') > exp(32), break, end
         
         % precision and conditional covariance
         %------------------------------------------------------------------
@@ -305,7 +306,7 @@ for k = 1:128
         end
         S     = spm_inv(iS);
         iS    = kron(speye(nq),iS);
-        Pp    = real(J)'*iS*real(J) + imag(J)'*iS*imag(J);
+        Pp    = real(J'*iS*J);
         Cp    = spm_inv(Pp + ipC);
         if any(isnan(Cp(:))) || rcond(full(Cp)) < exp(-32), break, end
  
@@ -315,16 +316,14 @@ for k = 1:128
             P{i}   = Q{i}*exp(h(i));
             PS{i}  = P{i}*S;
             P{i}   = kron(speye(nq),P{i});
-            JPJ{i} = real(J)'*P{i}*real(J) + ...
-                     imag(J)'*P{i}*imag(J);
+            JPJ{i} = real(J'*P{i}*J);
         end
                     
         % derivatives: dLdh = dL/dh,...
         %------------------------------------------------------------------
         for i = 1:nh
             dFdh(i,1)      =   trace(PS{i})*nq/2 ...
-                             - real(e)'*P{i}*real(e)/2 ...
-                             - imag(e)'*P{i}*imag(e)/2 ...
+                             - real(e'*P{i}*e)/2 ...
                              - sum(sum(Cp.*JPJ{i}))/2;
             for j = i:nh
                 dFdhh(i,j) = - sum(sum(PS{i}.*PS{j}))*nq/2;
@@ -358,8 +357,7 @@ for k = 1:128
  
     % objective function: F(p) (= log evidence - divergence)
     %----------------------------------------------------------------------
-    F = - real(e)'*iS*real(e)/2 ...
-        - imag(e)'*iS*imag(e)/2 ...
+    F = - real(e'*iS*e)/2 ...
         - p'*ipC*p/2 ...
         - d'*ihC*d/2 ...
         - ns*nr*log(8*atan(1))/2 ...
@@ -389,10 +387,8 @@ for k = 1:128
         
         % E-Step: Conditional update of gradients and curvature
         %------------------------------------------------------------------
-        dFdp  = -real(J)'*iS*real(e) ...
-                -imag(J)'*iS*imag(e) - ipC*p;
-        dFdpp = -real(J)'*iS*real(J) ...
-                -imag(J)'*iS*imag(J) - ipC;
+        dFdp  = -real(J'*iS*e) - ipC*p;
+        dFdpp = -real(J'*iS*J) - ipC;
         
         % decrease regularization
         %------------------------------------------------------------------
@@ -430,7 +426,7 @@ for k = 1:128
         
         % subplot prediction
         %------------------------------------------------------------------
-        figure(Fsi)
+        set(0,'CurrentFigure',Fsi)
         x    = (1:ns)*Y.dt;
         xLab = 'time (seconds)';
         try
@@ -440,7 +436,7 @@ for k = 1:128
             end
         end
         
-        if isreal(f)
+        if isreal(e)
             
             subplot(2,1,1)
             plot(x,f), hold on
@@ -477,6 +473,33 @@ for k = 1:128
         title('conditional [minus prior] expectation')
         grid on
         drawnow
+        
+    catch
+        
+        if iscell(y)
+            
+            % subplot predictions
+            %--------------------------------------------------------------
+            e    = spm_unvec(e,f);
+            for i = 1:length(y)
+                subplot(2,length(y),i)
+                plot(f{i},'ko'), hold on
+                plot(f{i} + e{i},'rx'), hold off
+                xlabel(sprintf('%s: %i','observation ',i))
+                title(sprintf('%s: %i','prediction and response: E-Step',k))
+                grid on
+            end
+            
+            % subplot parameters
+            %--------------------------------------------------------------
+            subplot(2,1,2)
+            bar(full(V*p(ip)))
+            xlabel('parameter')
+            title('conditional [minus prior] expectation')
+            grid on
+            drawnow
+            
+        end
         
     end
  

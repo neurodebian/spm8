@@ -25,6 +25,7 @@ function TabDat = spm_VOI(SPM,xSPM,hReg)
 % .Ps    - uncorrected P values in searched volume (for voxel FDR)
 % .Pp    - uncorrected P values of peaks (for peak FDR)
 % .Pc    - uncorrected P values of cluster extents (for cluster FDR)
+% .uc    - 0.05 critical thresholds for FWEp, FDRp, FWEc, FDRc
 %
 % hReg   - Handle of results section XYZ registry (see spm_results_ui.m)
 %
@@ -51,10 +52,10 @@ function TabDat = spm_VOI(SPM,xSPM,hReg)
 %
 % See also: spm_list
 %__________________________________________________________________________
-% Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
+% Copyright (C) 1999-2012 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_VOI.m 3950 2010-06-28 10:44:02Z guillaume $
+% $Id: spm_VOI.m 4635 2012-02-01 19:09:45Z guillaume $
 
 
 %-Parse arguments
@@ -62,8 +63,8 @@ function TabDat = spm_VOI(SPM,xSPM,hReg)
 if nargin < 2,   error('insufficient arguments'), end
 if nargin < 3,   hReg = []; end
 
-Num      = 16;          % maxima per cluster
-Dis      = 04;          % distance among maxima (mm)
+Num      = spm_get_defaults('stats.results.svc.nbmax');   % maxima per cluster
+Dis      = spm_get_defaults('stats.results.svc.distmin'); % distance among maxima {mm}
 
 %-Title
 %--------------------------------------------------------------------------
@@ -136,18 +137,18 @@ STAT       = xSPM.STAT;
 DIM        = xSPM.DIM;
 R          = xSPM.R;
 n          = xSPM.n;
-Z          = xSPM.Z;
+Vspm       = xSPM.Vspm;
 u          = xSPM.u;
 S          = xSPM.S;
 
 try, xSPM.Ps  = xSPM.Ps(k); end
 if STAT ~= 'P'
-    [up, xSPM.Pp] = spm_uc_peakFDR(0.05,df,STAT,R,n,Z,SPM.xVol.XYZ(:,k),u);
+    [up, xSPM.Pp] = spm_uc_peakFDR(0.05,df,STAT,R,n,Vspm,k,u);
     uu            = spm_uc(0.05,df,STAT,R,n,S);
 end
 try % if STAT == 'T'
     V2R               = 1/prod(xSPM.FWHM(DIM>1));
-    [uc, xSPM.Pc, ue] = spm_uc_clusterFDR(0.05,df,STAT,R,n,Z,SPM.xVol.XYZ(:,k),V2R,u);
+    [uc, xSPM.Pc, ue] = spm_uc_clusterFDR(0.05,df,STAT,R,n,Vspm,k,V2R,u);
 catch
     uc                = NaN;
     ue                = NaN;

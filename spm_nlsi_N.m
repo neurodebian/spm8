@@ -83,7 +83,7 @@ function [Ep,Eg,Cp,Cg,S,F,L] = spm_nlsi_N(M,U,Y)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_nlsi_N.m 4281 2011-03-31 19:49:57Z karl $
+% $Id: spm_nlsi_N.m 4509 2011-10-04 16:44:54Z guillaume $
  
 % figure (unless disabled)
 %--------------------------------------------------------------------------
@@ -217,7 +217,7 @@ end
 try
     hE  = M.hE;
 catch
-    hE  = sparse(nh,1) - log(var(spm_vec(y))) + 3;
+    hE  = sparse(nh,1) - log(var(spm_vec(y))) + 4;
 end
 h       =  hE;              % initialize hyperparameters
  
@@ -226,7 +226,7 @@ h       =  hE;              % initialize hyperparameters
 try
     ihC = spm_inv(M.hC);
 catch
-    ihC = speye(nh,nh)*exp(8);
+    ihC = speye(nh,nh)*exp(4);
 end
 
 % unpack prior covariances
@@ -254,9 +254,9 @@ sw    = warning('off','all');
 pC    = Vp'*M.pC*Vp;
 gC    = Vg'*M.gC*Vg;
 uC    = speye(nu,nu)*exp(32);
-ipC   = spm_inv(pC);                               % p - state parameters
-igC   = spm_inv(gC);                               % g - observer parameters
-iuC   = spm_inv(uC);                               % u - fixed parameters
+ipC   = spm_inv(pC);                           % p - state parameters
+igC   = spm_inv(gC);                           % g - observer parameters
+iuC   = spm_inv(uC);                           % u - fixed parameters
 ibC   = spm_cat(spm_diag({ipC,igC,iuC}));      % all parameters
  
 % initialize conditional density
@@ -295,7 +295,7 @@ for ip = 1:64
     % check for dissipative dynamics
     %----------------------------------------------------------------------
     if all(isfinite(spm_vec(x)))
-        gi = 8;
+        gi = 16;
     else
         gi = 0;
     end
@@ -377,8 +377,8 @@ for ip = 1:64
             
             % M-Step: update ReML estimate of h
             %--------------------------------------------------------------
-            dh    = spm_dx(dFdhh,dFdh,{8});
-            h     = h + dh;
+            dh    = spm_dx(dFdhh,dFdh,{4});
+            h     = h + min(max(dh,-2),2);
  
             % convergence
             %--------------------------------------------------------------
@@ -500,7 +500,7 @@ for ip = 1:64
  
         % subplot prediction
         %------------------------------------------------------------------
-        figure(Fsi)
+        set(0,'CurrentFigure',Fsi)
         
         subplot(3,1,1)
         plot(yt,x)

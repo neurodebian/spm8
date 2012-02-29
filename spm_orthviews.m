@@ -21,6 +21,13 @@ function varargout = spm_orthviews(action,varargin)
 %            of a view)
 % with no arguments - puts things into mm space
 %
+% FORMAT H = spm_orthviews('Caption', handle, string, [Property, Value])
+% handle   - the view to which a caption should be added
+% string   - the caption text to add
+% optional:  Property-Value pairs, e.g. 'FontWeight', 'Bold'
+%
+% H        - the handle to the object whose String property has the caption
+%
 % FORMAT spm_orthviews('BB',bb)
 % bb       - bounding box
 %            [loX loY loZ
@@ -82,6 +89,9 @@ function varargout = spm_orthviews(action,varargin)
 % This method only adds one set of blobs, and displays them using a
 % split colour table.
 %
+% FORMAT spm_orthviews('SetBlobsMax', vn, bn, mx)
+% Set maximum value for blobs overlay number bn of view number vn to mx.
+%
 % FORMAT spm_orthviews('AddColouredBlobs',handle,XYZ,Z,mat,colour,name)
 % Adds blobs from a pointlist to the image specified by the handle(s).
 % handle   - image number to add blobs to
@@ -142,7 +152,7 @@ function varargout = spm_orthviews(action,varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner et al
-% $Id: spm_orthviews.m 4276 2011-03-31 11:25:34Z spm $
+% $Id: spm_orthviews.m 4405 2011-07-22 12:54:59Z guillaume $
 
 
 % The basic fields of st are:
@@ -265,6 +275,28 @@ switch lower(action)
         mmcentre     = mean(st.Space*[maxbb';1 1],2)';
         st.centre    = mmcentre(1:3);
         redraw_all
+
+    case 'caption'
+        vh = valid_handles(varargin{1});
+        nh = numel(vh);
+        
+        xlh = nan(nh, 1);
+        for i = 1:nh
+            xlh(i) = get(st.vols{vh(i)}.ax{3}.ax, 'XLabel');
+            if iscell(varargin{2})
+                if i <= length(varargin{2})
+                    set(xlh(i), 'String', varargin{2}{i});
+                end
+            else
+                set(xlh(i), 'String', varargin{2});
+            end
+            for np = 4:2:nargin
+                property = varargin{np-1};
+                value = varargin{np};
+                set(xlh(i), property, value);
+            end
+        end
+        varargout{1} = xlh;
         
     case 'bb',
         if ~isempty(varargin) && all(size(varargin{1})==[2 3]), st.bb = varargin{1}; end
@@ -369,6 +401,10 @@ switch lower(action)
     case 'addblobs',
         addblobs(varargin{:});
         % redraw(varargin{1});
+        
+    case 'setblobsmax'
+        st.vols{varargin{1}}.blobs{varargin{2}}.max = varargin{3};
+        spm_orthviews('redraw')
         
     case 'addcolouredblobs',
         addcolouredblobs(varargin{:});
@@ -1615,6 +1651,7 @@ item7_5   = uimenu(item7,      'Label','Remove blobs',        'Visible','off','S
 item7_6   = uimenu(item7,      'Label','Remove colored blobs','Visible','off');
 item7_6_1 = uimenu(item7_6,    'Label','local', 'Visible','on');
 item7_6_2 = uimenu(item7_6,    'Label','global','Visible','on');
+item7_7   = uimenu(item7,      'Label','Set blobs max', 'Visible','off');
 
 for i=1:3,
     set(st.vols{volhandle}.ax{i}.ax,'UIcontextmenu',item_parent);
@@ -1873,17 +1910,26 @@ switch lower(varargin{1}),
         % Add blobs to the image - in split colortable
         cm_handles = valid_handles(1:24);
         if varargin{2} == 2, cm_handles = get_current_handle; end;
-        spm_figure('Clear','Interactive');
+        spm_input('!DeleteInputObj');
         [SPM,xSPM] = spm_getSPM;
         if ~isempty(SPM)
             for i = 1:numel(cm_handles),
                 addblobs(cm_handles(i),xSPM.XYZ,xSPM.Z,xSPM.M);
+                % Add options for removing blobs
                 c_handle = findobj(findobj(st.vols{cm_handles(i)}.ax{1}.cm,'label','Blobs'),'Label','Remove blobs');
                 set(c_handle,'Visible','on');
                 delete(get(c_handle,'Children'));
                 item7_3_1 = uimenu(c_handle,'Label','local','Callback','spm_orthviews(''context_menu'',''remove_blobs'',2);');
                 if varargin{2} == 1,
                     item7_3_2 = uimenu(c_handle,'Label','global','Callback','spm_orthviews(''context_menu'',''remove_blobs'',1);');
+                end;
+                % Add options for setting maxima for blobs
+                c_handle = findobj(findobj(st.vols{cm_handles(i)}.ax{1}.cm,'label','Blobs'),'Label','Set blobs max');
+                set(c_handle,'Visible','on');
+                delete(get(c_handle,'Children'));
+                uimenu(c_handle,'Label','local','Callback','spm_orthviews(''context_menu'',''setblobsmax'',2);');
+                if varargin{2} == 1,
+                    uimenu(c_handle,'Label','global','Callback','spm_orthviews(''context_menu'',''setblobsmax'',1);');
                 end;
             end;
             redraw_all;
@@ -1894,8 +1940,12 @@ switch lower(varargin{1}),
         if varargin{2} == 2, cm_handles = get_current_handle; end;
         for i = 1:numel(cm_handles),
             rmblobs(cm_handles(i));
+            % Remove options for removing blobs
             c_handle = findobj(findobj(st.vols{cm_handles(i)}.ax{1}.cm,'label','Blobs'),'Label','Remove blobs');
             delete(get(c_handle,'Children'));
+            set(c_handle,'Visible','off');
+            % Remove options for setting maxima for blobs
+            c_handle = findobj(findobj(st.vols{cm_handles(i)}.ax{1}.cm,'label','Blobs'),'Label','Set blobs max');
             set(c_handle,'Visible','off');
         end;
         redraw_all;
@@ -1904,17 +1954,26 @@ switch lower(varargin{1}),
         % Add blobs to the image - in split colortable
         cm_handles = valid_handles(1:24);
         if varargin{2} == 2, cm_handles = get_current_handle; end;
-        spm_figure('Clear','Interactive');
+        spm_input('!DeleteInputObj');
         fname = spm_select(1,'image','select image');
         if ~isempty(fname)
             for i = 1:numel(cm_handles),
                 addimage(cm_handles(i),fname);
+                % Add options for removing blobs
                 c_handle = findobj(findobj(st.vols{cm_handles(i)}.ax{1}.cm,'label','Blobs'),'Label','Remove blobs');
                 set(c_handle,'Visible','on');
                 delete(get(c_handle,'Children'));
                 item7_3_1 = uimenu(c_handle,'Label','local','Callback','spm_orthviews(''context_menu'',''remove_blobs'',2);');
                 if varargin{2} == 1,
                     item7_3_2 = uimenu(c_handle,'Label','global','Callback','spm_orthviews(''context_menu'',''remove_blobs'',1);');
+                end;
+                % Add options for setting maxima for blobs
+                c_handle = findobj(findobj(st.vols{cm_handles(i)}.ax{1}.cm,'label','Blobs'),'Label','Set blobs max');
+                set(c_handle,'Visible','on');
+                delete(get(c_handle,'Children'));
+                uimenu(c_handle,'Label','local','Callback','spm_orthviews(''context_menu'',''setblobsmax'',2);');
+                if varargin{2} == 1,
+                    uimenu(c_handle,'Label','global','Callback','spm_orthviews(''context_menu'',''setblobsmax'',1);');
                 end;
             end;
             redraw_all;
@@ -1924,7 +1983,7 @@ switch lower(varargin{1}),
         % Add blobs to the image - in full colour
         cm_handles = valid_handles(1:24);
         if varargin{2} == 2, cm_handles = get_current_handle; end;
-        spm_figure('Clear','Interactive');
+        spm_input('!DeleteInputObj');
         [SPM,xSPM] = spm_getSPM;
         if ~isempty(SPM)
             c         = spm_input('Colour','+1','m',...
@@ -1979,7 +2038,7 @@ switch lower(varargin{1}),
         % Add truecolored image
         cm_handles = valid_handles(1:24);
         if varargin{2} == 2, cm_handles = get_current_handle;end;
-        spm_figure('Clear','Interactive');
+        spm_input('!DeleteInputObj');
         fname   = spm_select([1 Inf],'image','select image(s)');
         for k = 1:size(fname,1)
             c       = spm_input(sprintf('Image %d: Colour',k),'+1','m','Red blobs|Yellow blobs|Green blobs|Cyan blobs|Blue blobs|Magenta blobs',[1 2 3 4 5 6],1);
@@ -2003,6 +2062,41 @@ switch lower(varargin{1}),
             end
             redraw_all;
         end
+        
+    case 'setblobsmax'
+        if varargin{2} == 1
+            % global
+            cm_handles = valid_handles(1:24);
+            mx = -inf;
+            for i = 1:numel(cm_handles)
+                if ~isfield(st.vols{cm_handles(i)}, 'blobs'), continue, end
+                for j = 1:numel(st.vols{cm_handles(i)}.blobs)
+                    mx = max(mx, st.vols{cm_handles(i)}.blobs{j}.max);
+                end
+            end
+            mx = spm_input('Maximum value', '+1', 'r', mx, 1);
+            for i = 1:numel(cm_handles)
+                if ~isfield(st.vols{cm_handles(i)}, 'blobs'), continue, end
+                for j = 1:numel(st.vols{cm_handles(i)}.blobs)
+                    st.vols{cm_handles(i)}.blobs{j}.max = mx;
+                end
+            end
+        else
+            % local (should handle coloured blobs, but not implemented yet)
+            cm_handle = get_current_handle;
+            colours = [1 0 0;1 1 0;0 1 0;0 1 1;0 0 1;1 0 1];
+            if ~isfield(st.vols{cm_handle}, 'blobs'), return, end
+            for j = 1:numel(st.vols{cm_handle}.blobs)
+                if nargin < 4 || ...
+                        all(st.vols{cm_handle}.blobs{j}.colour == colours(varargin{3},:))
+                    mx = st.vols{cm_handle}.blobs{j}.max;
+                    mx = spm_input('Maximum value', '+1', 'r', mx, 1);
+                    st.vols{cm_handle}.blobs{j}.max = mx;
+                end
+            end
+        end
+        redraw_all;
+        
 end;
 %_______________________________________________________________________
 %_______________________________________________________________________

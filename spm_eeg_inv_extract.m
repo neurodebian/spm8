@@ -15,7 +15,7 @@ function [Ds, D] = spm_eeg_inv_extract(D)
 % Copyright (C) 2011 Wellcome Trust Centre for Neuroimaging
  
 % Vladimir Litvak, Laurence Hunt, Karl Friston
-% $Id: spm_eeg_inv_extract.m 4260 2011-03-23 13:42:21Z vladimir $
+% $Id: spm_eeg_inv_extract.m 4638 2012-02-02 13:53:21Z vladimir $
  
 % SPM data structure
 %==========================================================================
@@ -67,7 +67,7 @@ for i = 1:Ns
         svert{i} = find(dist < rad);
     else
         [junk svert{i}] = min(dist);
-        XYZ = vert(svert{i}, :);
+        XYZ(i, :) = vert(svert{i}, :);
     end
 end
  
@@ -104,7 +104,7 @@ It      = inv.inverse.It;
 Np      = length(It);
  
 try
-    trial = model.inverse.trials;
+    trial = inv.inverse.trials;
 catch
     trial = D.condlist;
 end
@@ -145,7 +145,7 @@ switch(type)
                     
                     % unimodal data
                     %------------------------------------------------------
-                    Y     = D(Ic{1},It,c(j))*TT;
+                    Y     = D(Ic{1},It,c(j));
                     Y     = U{1}*Y*scale;
                     
                 else
@@ -153,7 +153,7 @@ switch(type)
                     % multimodal data
                     %------------------------------------------------------
                     for k = 1:length(U)
-                        Y       = D(Ic{k},It,c(j))*TT;
+                        Y       = D(Ic{k},It,c(j));
                         UY{k,1} = U{k}*Y*scale(k);
                     end
                     Y = spm_cat(UY);

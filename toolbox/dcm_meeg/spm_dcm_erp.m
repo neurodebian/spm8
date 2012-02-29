@@ -23,11 +23,12 @@ function DCM = spm_dcm_erp(DCM)
 %   options.model        - 'ERP', 'SEP', 'CMC', 'NMM' or 'MFM'
 %   options.spatial      - 'ERP', 'LFP' or 'IMG'
 %   options.onset        - stimulus onset (ms)
+%   options.dur          - and dispersion (sd)
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_dcm_erp.m 4281 2011-03-31 19:49:57Z karl $
+% $Id: spm_dcm_erp.m 4567 2011-11-23 12:13:01Z spm $
 
 % check options
 %==========================================================================
@@ -42,6 +43,7 @@ try, DCM.xU;                        catch, DCM.xU.X  = sparse(1,0); end
 try, h     = DCM.options.h;         catch, h         = 1;           end
 try, Nm    = DCM.options.Nmodes;    catch, Nm        = 8;           end
 try, onset = DCM.options.onset;     catch, onset     = 60;          end
+try, dur   = DCM.options.dur;       catch, dur       = 16;          end
 try, model = DCM.options.model;     catch, model     = 'NMM';       end
 try, lock  = DCM.options.lock;      catch, lock      = 0;           end
 try, symm  = DCM.options.symmetry;  catch, symm      = 0;           end
@@ -78,12 +80,12 @@ if h == 0
 else
     X0 = spm_dctmtx(Ns,h);
 end
-T0     = speye(Ns) - X0*inv(X0'*X0)*X0';
+T0     = speye(Ns) - X0*((X0'*X0)\X0');
 xY.X0  = X0;
 
 % Serial correlations (precision components) AR model
 %--------------------------------------------------------------------------
-xY.Q   = {spm_Q(7/8,Ns,1)};
+xY.Q   = {spm_Q(3/4,Ns,1)};
 
 
 %-Inputs
@@ -105,6 +107,7 @@ end
 % within-trial effects: adjust onset relative to PST
 %--------------------------------------------------------------------------
 M.ons  = onset - xY.pst(1);
+M.dur  = dur;
 xU.dt  = xY.dt;
 
 
@@ -152,7 +155,7 @@ if symm, gC = spm_dcm_symm(gC,gE); end
 % hyperpriors (assuming about 99% signal to noise)
 %--------------------------------------------------------------------------
 hE    = 4 - log(var(spm_vec(xY.y)));
-hC    = exp(-8);
+hC    = exp(-4);
 
 
 % likelihood model
@@ -258,6 +261,7 @@ DCM.ID = ID;                   % data ID
 DCM.options.h      = h;
 DCM.options.Nmodes = Nm;
 DCM.options.onset  = onset;
+DCM.options.dur    = dur;
 DCM.options.model  = model;
 DCM.options.lock   = lock;
 DCM.options.symm   = symm;

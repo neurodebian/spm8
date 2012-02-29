@@ -114,7 +114,7 @@ function [DEM] = spm_ADEM(DEM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_ADEM.m 4230 2011-03-07 20:58:38Z karl $
+% $Id: spm_ADEM.m 4322 2011-05-04 15:28:08Z karl $
  
 % check model, data, priors and unpack
 %--------------------------------------------------------------------------
@@ -160,8 +160,8 @@ na   = ga;
  
 % number of iterations
 %--------------------------------------------------------------------------
-try nE = M(1).E.nE; catch nE = 16; end
-try nM = M(1).E.nM; catch nM = 8;  end
+try, nE = M(1).E.nE; catch, nE = 16; end
+try, nM = M(1).E.nM; catch, nM = 8;  end
  
  
 % initialise regularisation parameters
@@ -348,8 +348,8 @@ for iE = 1:nE
     EE    = sparse(0);
     ECE   = sparse(0);
     qp.ic = sparse(0);
-    qu_c  = speye(1);
- 
+    Hqu.c = sparse(0);
+
  
     % [re-]set precisions using ReML hyperparameter estimates
     %----------------------------------------------------------------------
@@ -413,8 +413,8 @@ for iE = 1:nE
         
         % conditional covariance [of states {u}]
         %------------------------------------------------------------------
-        qu.c   = inv(dE.du'*iS*dE.du + Pu);
-        qu_c   = qu_c*qu.c;
+        qu.c   = spm_inv(dE.du'*iS*dE.du + Pu);
+        Hqu.c  = Hqu.c + spm_logdet(qu.c);
         
         % save at qu(t)
         %------------------------------------------------------------------
@@ -614,7 +614,7 @@ for iE = 1:nE
     L   = - trace(iS*EE)/2  ...              % states (u)
         - trace(qp.e'*pp.ic*qp.e)/2  ...     % parameters (p)
         - trace(qh.e'*ph.ic*qh.e)/2  ...     % hyperparameters (h)
-        + spm_logdet(qu_c)/2  ...            % entropy q(u)
+        + Hqu.c/2             ...            % entropy q(u)
         + spm_logdet(qp.c)/2  ...            % entropy q(p)
         + spm_logdet(qh.c)/2  ...            % entropy q(h)
         - spm_logdet(pp.c)/2  ...            % entropy - prior p

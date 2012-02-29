@@ -128,7 +128,7 @@ function varargout = spm_DesRep(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes
-% $Id: spm_DesRep.m 4209 2011-02-22 20:11:05Z guillaume $
+% $Id: spm_DesRep.m 4413 2011-08-01 16:51:00Z guillaume $
 
 
 
@@ -144,6 +144,7 @@ function varargout = spm_DesRep(varargin)
 %
 % .xX    - design matrix structure
 %          (See spm_{fmri_}spm_ui.m & spm_spm.m for formats)
+% .xY.P  - (char or cellstr) array of filenames
 % .xY.VY - array of mmap file handles (from spm_{fmri_}spm_ui.m)
 % .xM    - Masking structure
 % .xC    - Covariate definition structure (not fMRI)
@@ -160,7 +161,7 @@ function varargout = spm_DesRep(varargin)
 %
 % FORMAT spm_DesRep('Files&Factors',P,I,xC,sF,xs)
 % Produces multi-page listing of files, factor indices, and covariates.
-% P   - nxv CellStr of filenames (i.e. reshape({V.fname},size(V)))
+% P   - nxv CellStr of filenames (i.e. reshape(cellstr(SPM.xY.P),size(V)))
 % I   - nx4 matrix of factor indices
 % xC  - Covariate structure array (see spm_spm_ui.m for definitions)
 %       ('rc' & 'cname' fields used)
@@ -182,7 +183,7 @@ function varargout = spm_DesRep(varargin)
 %
 % .name - [optional] px1 CellStr of parameter names
 %
-% fnames  - [optional] nxv CellStr of filenames (i.e. reshape({V.fname},size(V)))
+% fnames  - [optional] nxv CellStr of filenames (i.e. reshape(cellstr(SPM.xY.P),size(V)))
 % xs      - [optional] structure of extra strings containing descriptive
 %          information which is printed at the foot of the page ('DesMtx' usage)
 %          The field names are used as sub-headings, the field values
@@ -265,8 +266,10 @@ function varargout = spm_DesRep(varargin)
 if nargin==0
     hC = spm_DesRep('DesRepUI'); 
     SPM = get(hC,'UserData');
-    spm_DesRep('DesMtx',SPM.xX,...
+    if isfield(SPM.xY,'VY')
+        spm_DesRep('DesMtx',SPM.xX,...
             reshape({SPM.xY.VY.fname},size(SPM.xY.VY)),SPM.xsDes);
+    end
     return;
 end
 
@@ -354,7 +357,7 @@ cb      = 'tmp = get(get(gcbo,''UserData''),''UserData''); ';
 hDesMtx = uimenu(hC,'Label','Design Matrix','Accelerator','D',...
         'CallBack',[cb,...
         'spm_DesRep(''DesMtx'',tmp.xX,',...
-            'reshape({tmp.xY.VY.fname},size(tmp.xY.VY)),tmp.xsDes)'],...
+            'reshape(cellstr(tmp.xY.P),size(tmp.xY.VY)),tmp.xsDes)'],...
         'UserData',hC,...
         'HandleVisibility','off');
 
@@ -377,7 +380,7 @@ case 'PET'
     hFnF = uimenu(hExplore,'Label','Files and factors','Accelerator','F',...
         'CallBack',[cb,...
         'spm_DesRep(''Files&Factors'',',...
-            'reshape({tmp.xY.VY.fname},size(tmp.xY.VY)),',...
+            'reshape(cellstr(tmp.xY.P),size(tmp.xY.VY)),',...
             'tmp.xX.I,tmp.xC,tmp.xX.sF,tmp.xsDes)'],...
         'UserData',hC,...
         'HandleVisibility','off');
@@ -781,9 +784,9 @@ if desmtx && ~isempty(fnames)
         'YLim',[0,nScan]+0.5,'YDir','Reverse')
     for i = STick
         try
-            str  = fnames(i,:);
+            str  = strrep(fnames(i,:),'\','/');
         catch
-            str  = fnames{i};
+            str  = strrep(fnames{i},'\','/');
         end
         text(0,i,spm_str_manip(str,'Ca35'));
     end

@@ -75,12 +75,25 @@ function [DEM] = spm_DEM(DEM)
 % in generalised co-ordinates.  This means DEM can deconvolve online and can
 % represents an alternative to Kalman filtering or alternative Bayesian
 % update procedures.
+%
+%
+% To accelerate computations one can specify the nature of the model using
+% the field:
+%
+% M(1).E.linear = 0: full        - evaluates 1st and 2nd derivatives
+% M(1).E.linear = 1: linear      - equations are linear in x and v
+% M(1).E.linear = 2: bilinear    - equations are linear in x, v and x.v
+% M(1).E.linear = 3: nonlinear   - equations are linear in x, v, x.v, and x.x
+% M(1).E.linear = 4: full linear - evaluates 1st derivatives (for generalised 
+%                                  filtering, where parameters change)
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_DEM.m 4146 2010-12-23 21:01:39Z karl $
- 
+% $Id: spm_DEM.m 4310 2011-04-18 16:07:35Z guillaume $
+
+
+
 % check model, data, priors and confounds and unpack
 %--------------------------------------------------------------------------
 [M Y U X] = spm_DEM_set(DEM);
@@ -110,10 +123,10 @@ nu   = nv*d + nx*n;                    % number of generalised states
  
 % number of iterations
 %--------------------------------------------------------------------------
-try nD = M(1).E.nD; catch nD = 1; end
-try nE = M(1).E.nE; catch nE = 8; end
-try nM = M(1).E.nM; catch nM = 8; end
-try K  = M(1).E.K;  catch K  = 1; end
+try, nD = M(1).E.nD; catch, nD = 1; end
+try, nE = M(1).E.nE; catch, nE = 8; end
+try, nM = M(1).E.nM; catch, nM = 8; end
+try, K  = M(1).E.K;  catch, K  = 1; end
  
  
 % initialise regularisation parameters
@@ -482,7 +495,7 @@ for iE = 1:nE
             dfdu  = K*dFduu + D;
             du    = spm_dx(dfdu,f,td);
             q     = spm_unvec(u + du,q);
-            
+                        
             % and save them
             %--------------------------------------------------------------
             qu.x(1:n) = q([1:n]);

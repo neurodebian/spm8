@@ -8,7 +8,7 @@ function out = spm_run_factorial_design(job)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Will Penny
-% $Id: spm_run_factorial_design.m 4185 2011-02-01 18:46:18Z guillaume $
+% $Id: spm_run_factorial_design.m 4537 2011-10-27 17:34:58Z guillaume $
 
 %--------------------------------------------------------------------------
 % This function configures the design matrix (describing the general
@@ -1019,10 +1019,12 @@ out.spmmat{1} = fullfile(pwd, 'SPM.mat');
 
 %-Display Design report
 %==========================================================================
-fprintf('%-40s: ','Design reporting')                                   %-#
-fname     = cat(1,{SPM.xY.VY.fname}');
-spm_DesRep('DesMtx',SPM.xX,fname,SPM.xsDes)
-fprintf('%30s\n','...done')                                             %-#
+if ~spm('CmdLine')
+    fprintf('%-40s: ','Design reporting')                               %-#
+    fname     = cat(1,{SPM.xY.VY.fname}');
+    spm_DesRep('DesMtx',SPM.xX,fname,SPM.xsDes)
+    fprintf('%30s\n','...done')                                         %-#
+end
 
 cd(original_dir); % Change back dir
 fprintf('Done\n')                                                       %-#

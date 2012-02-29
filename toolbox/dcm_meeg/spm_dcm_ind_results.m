@@ -1,5 +1,5 @@
 function [DCM] = spm_dcm_ind_results(DCM,Action)
-% Results for induced Dynamic Causal Modeling (DCM)
+% Results for induced Dynamic Causal Modelling (DCM)
 % FORMAT [DCM] = spm_dcm_ind_results(DCM,Action);
 % Action:
 %     'Frequency modes'
@@ -11,6 +11,7 @@ function [DCM] = spm_dcm_ind_results(DCM,Action)
 %     'Coupling (B - modes)'
 %     'Input (C - Hz)'
 %     'Input (u - ms)'
+%     'Input (C x u)'
 %     'Dipoles'
 %     'Saveimg'           
 %__________________________________________________________________________
@@ -31,25 +32,26 @@ function [DCM] = spm_dcm_ind_results(DCM,Action)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_dcm_ind_results.m 3362 2009-09-04 14:21:40Z guillaume $
-
-
+% $Id: spm_dcm_ind_results.m 4577 2011-11-30 18:10:57Z vladimir $
+ 
+ 
 % get figure handle
 %--------------------------------------------------------------------------
 Fgraph = spm_figure('GetWin','Graphics');
 colormap(gray)
 figure(Fgraph)
 clf
-
+ 
 xY     = DCM.xY;
+xU     = DCM.xU;
 nt     = length(xY.y);           % Nr of trial types
-nr     = length(DCM.C);          % Nr of sources
-nu     = length(DCM.B);          % Nr of experimental effects
+nr     = size(xY.xf,2);          % Nr of sources
+nu     = size(xU.X, 2);          % Nr of experimental effects
 nf     = size(xY.U,2);           % Nr of frequency modes
 ns     = size(xY.y{1},1);        % Nr of time bins
 pst    = xY.pst;                 % peri-stmulus time
 Hz     = xY.Hz;                  % frequencies
-
+ 
     
 % switch
 %--------------------------------------------------------------------------
@@ -77,7 +79,6 @@ switch(lower(Action))
     
     % loop over trials, sources (predicted and observed)
     %----------------------------------------------------------------------
-    colormap(jet)
     for i = 1:nt
         for j = 1:nr
            
@@ -103,7 +104,7 @@ switch(lower(Action))
             end
         end
     end
-
+ 
 case{lower('Frequency modes')}
     
     % spm_dcm_ind_results(DCM,'Frequency modes')
@@ -111,7 +112,7 @@ case{lower('Frequency modes')}
     plot(DCM.xY.Hz,DCM.xY.U)
     xlabel('Frequnecy (Hz)')
     xlabel('modes')
-    title('Frequency modes modelled at each source')
+    title('Frequency modes modelled at each source','FontSize',16)
     axis square
     grid on
     
@@ -141,16 +142,16 @@ case{lower('Time-modes')}
         if i == 1
             ylim1 = ylim;
         end
-
+ 
         ylim(max(abs(ylim1))*[-1 1]);
             
     end
     legend(DCM.Sname)
-
+ 
     
 case{lower('Time-frequency')}
     
-    % reconstitute time-frequency and get principle model over channels
+    % reconstitute time-frequency and get principal mode over channels
     %----------------------------------------------------------------------
     nk    = length(Hz);
     for i = 1:nt
@@ -167,12 +168,11 @@ case{lower('Time-frequency')}
             end
         end
     end
-
+ 
       
     % loop over trials, sources (predicted and observed)
     %----------------------------------------------------------------------
-    colormap(jet)
-    cmax = zeros(nt, nr);
+    cmax  = zeros(nt, nr);
     for i = 1:nt
         for j = 1:nr
             subplot(nt*2,nr,(i - 1)*2*nr + j)
@@ -183,9 +183,9 @@ case{lower('Time-frequency')}
             title({sprintf('trial %i: %s ',i,DCM.Sname{j});
                   'observed (adjusted for confounds)'})
               
-            clim = caxis;  
+            clim = caxis;
             cmax(i, j) = max(clim);  
-
+ 
             subplot(nt*2,nr,(i - 1)*2*nr + nr + j)
             imagesc(pst,Hz,TF{i,j}')
             axis xy
@@ -195,19 +195,19 @@ case{lower('Time-frequency')}
                   'predicted'})
         end
     end
-
-    cmax = mean(cmax);
-
+ 
+    cmax = mean(cmax, 1);
+ 
     for i = 1:nt
         for j = 1:nr
             subplot(nt*2,nr,(i - 1)*2*nr + j)
-            caxis(cmax(j)*[0 1]);
-
+            caxis(cmax(j)*[-1 1]);
+ 
             subplot(nt*2,nr,(i - 1)*2*nr + nr + j)
-            caxis(cmax(j)*[0 1]);
+            caxis(cmax(j)*[-1 1]);
         end
     end
-
+ 
 case{lower('Coupling (A - Hz)')}
     
     % reconstitute time-frequency coupling
@@ -240,13 +240,13 @@ case{lower('Coupling (A - Hz)')}
                 V.fname = sprintf('%s_A%d%d.img',DCM.name(1:end-4),i,j);
                 spm_write_vol(V,A);
             end
-
+ 
         end
     end
     
     axes('position', [0.4, 0.95, 0.2, 0.01]);
     axis off;
-    title('endogenous coupling (A)')
+    title('endogenous coupling (A)','FontSize',16)
     colormap(jet);
      
 case{lower('Coupling (B - Hz)')}
@@ -265,7 +265,7 @@ case{lower('Coupling (B - Hz)')}
         k = find(b);
     end
     
-    % reconstitute time-frequency  coupling
+    % reconstitute time-frequency coupling
     %----------------------------------------------------------------------
     for i = 1:nr
         for j = 1:nr
@@ -282,7 +282,7 @@ case{lower('Coupling (B - Hz)')}
             %--------------------------------------------------------------
             if i == 1, title({'from'; DCM.Sname{j}}), end
             if j == 1, ylabel({'to';  DCM.Sname{i}}), end
-
+ 
             
             if isfield(DCM,'saveInd')&& strcmp(DCM.saveInd,'Bmatrix')
                V.dt    = [spm_type('float64') spm_platform('bigend')];
@@ -319,14 +319,14 @@ case{lower('Coupling (A - modes)')}
     xlabel('from','FontSize',10)
     ylabel('to','FontSize',10)
     axis square
-
+ 
     % table
     %----------------------------------------------------------------------
     subplot(3,2,2)
     text(-1/8,1/2,num2str(DCM.Ep.A,' %-8.2f'),'FontSize',8)
     axis off,axis square
-
-
+ 
+ 
     % PPM
     %----------------------------------------------------------------------
     subplot(3,2,3)
@@ -335,7 +335,7 @@ case{lower('Coupling (A - modes)')}
     set(gca,'XTick',[])
     title('Conditional probabilities')
     axis square
-
+ 
     % table
     %----------------------------------------------------------------------
     subplot(3,2,4)
@@ -354,8 +354,8 @@ case{lower('Coupling (A - modes)')}
     image(48*(kron(1 - eye(nf,nf),ones(nr,nr))))
     title('Between frequency (non-linear)')
     axis square
-
-
+ 
+ 
 case{lower('Coupling (B - modes)')}
     
     % spm_dcm_erp_results(DCM,'coupling (B)');
@@ -372,7 +372,7 @@ case{lower('Coupling (B - modes)')}
         xlabel('from','FontSize',8)
         ylabel('to','FontSize',8)
         axis square
-
+ 
         % tables
         %------------------------------------------------------------------
         subplot(4,nu,i + nu)
@@ -388,7 +388,7 @@ case{lower('Coupling (B - modes)')}
         set(gca,'XTick',[])
         title('PPM')
         axis square
-
+ 
         % tables
         %------------------------------------------------------------------
         subplot(4,nu,i + 3*nu)
@@ -397,23 +397,23 @@ case{lower('Coupling (B - modes)')}
         axis square
         
     end
-
-
+ 
+ 
 case{lower('Input (C - Hz)')}
    
     
     % reconstitute time-frequency and get principal mode over channels
     %----------------------------------------------------------------------
-    Nu    = size(DCM.Ep.C,2);
-    for k = 1:Nu
-        subplot(Nu,1,k)
+    nu    = size(DCM.Ep.C,2);
+    for k = 1:nu
+        subplot(nu,1,k)
         for i = 1:nr
             j = [1:nf]*nr - nr + i;
             UF(:,i) = xY.U*DCM.Ep.C(j,k);
         end
         plot(Hz,UF)
         xlabel('Frequency (Hz)')
-        title(sprintf('frequency response to input %i',k))
+        title(sprintf('frequency response to input %i',k),'FontSize',16)
         axis square, grid on
     end
     legend(DCM.Sname)
@@ -423,13 +423,36 @@ case{lower('Input (u - ms)')}
     
     % get input
     % ---------------------------------------------------------------------
-    U    = spm_ind_u((pst - pst(1))/1000,DCM.Ep,DCM.M);
+    U    = spm_erp_u((pst - pst(1))/1000,DCM.Ep,DCM.M);
     
     subplot(1,1,1)
     plot(pst,U)
     xlabel('time (ms)')
-    title('input')
+    title('input','FontSize',16)
     axis square tight, grid on
+    
+case{lower('Input (C x u)')}
+    
+    % get input
+    % ---------------------------------------------------------------------
+    U    = spm_erp_u((pst - pst(1))/1000,DCM.Ep,DCM.M);
+    U    = DCM.Ep.C*U';
+    
+    for k = 1:nr
+        
+        % reconstitute time-frequency input
+        %------------------------------------------------------------------
+        j  = [1:nf]*nr - nr + k;
+        UF = xY.U*U(j,:);
+        
+        subplot(nr,1,k)
+        imagesc(pst,Hz,UF)
+        xlabel('PST (ms)')
+        ylabel('Frequency (Hz)')
+        title(sprintf('input to %s',DCM.Sname{k}),'FontSize',16)
+        axis xy
+        
+    end
     
     
 case{lower('Dipoles')}
@@ -441,22 +464,21 @@ case{lower('Dipoles')}
     sdip.loc{1} = full(DCM.M.dipfit.Lpos);
     spm_eeg_inv_ecd_DrawDip('Init', sdip)
         
-
+ 
 case{lower('Save results as img')}
-
+ 
     fprintf('Saving the Time-frequency representation at sources\n');
     DCM.saveInd='TFR';
     spm_dcm_ind_results(DCM,'Wavelet');
-
+ 
     fprintf('Saving the coupling matrix A\n');
     DCM.saveInd='Amatrix';
     spm_dcm_ind_results(DCM,'Coupling (A - Hz)');
-
+ 
     fprintf('Saving the coupling matrix B\n');
     DCM.saveInd='Bmatrix';
     spm_dcm_ind_results(DCM,'Coupling (B - Hz)');
     DCM=rmfield(DCM,'saveInd');
-
+ 
 end
 drawnow
-

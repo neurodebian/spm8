@@ -31,7 +31,7 @@ function [pE,pC] = spm_L_priors(dipfit,pE,pC)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_L_priors.m 4281 2011-03-31 19:49:57Z karl $
+% $Id: spm_L_priors.m 4348 2011-06-10 20:50:23Z karl $
 
 % defaults
 %--------------------------------------------------------------------------
@@ -62,19 +62,19 @@ switch type
     
     case{'ECD'} % mean           and variance
         %------------------------------------------------------------------
-        pE.Lpos = dipfit.Lpos;   pC.Lpos = ones(3,n)*V;   % positions
-        pE.L    = sparse(3,n);   pC.L    = ones(3,n)*16;  % orientations
+        pE.Lpos = dipfit.Lpos;   pC.Lpos = ones(3,n)*V;      % positions
+        pE.L    = sparse(3,n);   pC.L    = ones(3,n)*exp(8); % orientations
         
     case{'IMG'}
         %------------------------------------------------------------------
-        m       = dipfit.Nm;                              % number modes
-        pE.Lpos = sparse(3,0);   pC.Lpos = sparse(3,0);   % positions
-        pE.L    = sparse(m,n);   pC.L    = ones(m,n)*16;  % modes
+        m       = dipfit.Nm;                                 % number modes
+        pE.Lpos = sparse(3,0);   pC.Lpos = sparse(3,0);      % positions
+        pE.L    = sparse(m,n);   pC.L    = ones(m,n)*exp(8); % modes
         
     case{'LFP'}
         %------------------------------------------------------------------
-        pE.Lpos = sparse(3,0);   pC.Lpos = sparse(3,0);   % positions
-        pE.L    = sparse(1,m);   pC.L    = ones(1,m)/16;  % gains
+        pE.Lpos = sparse(3,0);   pC.Lpos = sparse(3,0);      % positions
+        pE.L    = ones(1,m);     pC.L    = ones(1,m)*64;     % gains
         
     otherwise
         warndlg('Unknown spatial model')
@@ -87,7 +87,7 @@ switch model
     
     case{'ERP','SEP'}
         %------------------------------------------------------------------
-        pE.J = sparse(1,[1 7 9],[0.2 0.8 0.6],1,9);       % 9 states
+        pE.J = sparse(1,[1 7 9],[0.2 0.2 0.6],1,9);       % 9 states
         pC.J = pE.J/16;
         
     case{'CMC'}
@@ -110,10 +110,11 @@ switch model
         pE.J = sparse(1,[1,2,3],[0.1 0.1 1],1,36);        % 36 states =
         pC.J = sparse(1,[1,2],[1/64 1/128],1,36);         % 9 1st + 27 2nd
         
-    case{'DEM'}
+    case{'DEM','NFM'}
         %------------------------------------------------------------------
         pE.J = [];                                        % null
         pC.J = [];
+        
         
     otherwise
         warndlg('Unknown neural model')

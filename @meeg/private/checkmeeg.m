@@ -9,7 +9,7 @@ function [result meegstruct]=checkmeeg(meegstruct, option)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: checkmeeg.m 4207 2011-02-22 10:48:36Z christophe $
+% $Id: checkmeeg.m 4437 2011-08-23 13:09:24Z vladimir $
 
 if nargin==1
     option = 'basic';
@@ -191,6 +191,12 @@ if strncmp(meegstruct.transform.ID, 'TF', 2) % TF and TFphase
     end
 end
 
+if isfield(meegstruct, 'path')
+    filepath = meegstruct.path;
+else
+    filepath = pwd;
+end
+
 if ~isfield(meegstruct, 'data') && (Nsamples~=0)
     disp('checkmeeg: no data field');
     return;
@@ -201,7 +207,9 @@ else
         disp('checkmeeg: data file name missing');
         return;
     else
-        [junk, fnamedat, ext] = fileparts(meegstruct.data.fnamedat);
+        fname = meegstruct.data.fnamedat;
+        if ~ispc, fname = strrep(fname,'\',filesep); end
+        [junk, fnamedat, ext] = fileparts(fname);
         if isempty(ext)
             meegstruct.data.fnamedat = [fnamedat '.dat'];
         else
@@ -220,11 +228,19 @@ else
     if isa(meegstruct.data.y, 'file_array')
         % catching up (unlikely case) where filearray.fname is
         % different from data.fnamedat -> set data.fnamedat
-        [junk, yfname, yext] = fileparts(meegstruct.data.y.fname);
-        [junk, dfname, dext] = fileparts(meegstruct.data.fnamedat);
+        fname = meegstruct.data.y.fname;
+        if ~ispc, fname = strrep(fname,'\',filesep); end
+        [junk, yfname, yext] = fileparts(fname);
+        
+        fnamedat = meegstruct.data.fnamedat;
+        if ~ispc, fnamedat = strrep(fnamedat,'\',filesep); end
+        [junk, dfname, dext] = fileparts(fnamedat);
         if ~strcmp([yfname yext],[dfname dext])
             meegstruct.data.fnamedat = [yfname yext];
         end
+        
+        meegstruct.data.y.fname = fullfile(filepath, [yfname yext]);
+        
         % save original file_array scale & offset, just in case
         sav_sc = meegstruct.data.y.scl_slope;
         sav_os = meegstruct.data.y.offset;
@@ -236,14 +252,15 @@ else
         end
     end
     
+    if isa(meegstruct.data.y, 'file_array')
+        fn = meegstruct.data.y.fname;
+        if ~ispc, fn = strrep(fn,'\',filesep); end
+    else
+        fn = '';
+    end
     if ~isa(meegstruct.data.y, 'file_array') ...
-            || isempty(fileparts(meegstruct.data.y.fname)) ...
+            || isempty(fileparts(fn)) ...
             || ~exist(meegstruct.data.y.fname, 'file')
-        if isfield(meegstruct, 'path')
-            filepath = meegstruct.path;
-        else
-            filepath = pwd;
-        end
         switch(meegstruct.transform.ID)
             case 'time'
                 meegstruct.data.y = file_array(fullfile(filepath, meegstruct.data.fnamedat), ...
@@ -318,7 +335,9 @@ if ~isfield(meegstruct, 'type') ||...
 end
 
 try
-    [pdat, fdat] = fileparts(meegstruct.data.y.fname);
+    fname = meegstruct.data.y.fname;
+    if ~ispc, fname = strrep(fname,'\',filesep); end
+    [pdat, fdat] = fileparts(fname);
 catch
     fdat = 'spm8';
 end
@@ -326,7 +345,9 @@ end
 if ~isfield(meegstruct, 'fname')
     meegstruct.fname = [fdat '.mat'];
 else
-    [p, f] = fileparts(meegstruct.fname);
+    fname = meegstruct.fname;
+    if ~ispc, fname = strrep(fname,'\',filesep); end
+    [p, f] = fileparts(fname);
     if isempty(f)
         f = fdat;
     end
@@ -335,7 +356,9 @@ end
 
 if ~isfield(meegstruct, 'path')
     try
-        meegstruct.path = fileparts(meegstruct.data.y.fname);
+        fname = meegstruct.data.y.fname;
+        if ~ispc, fname = strrep(fname,'\',filesep); end
+        meegstruct.path = fileparts(fname);
     catch
         meegstruct.path = pwd;
     end
@@ -440,7 +463,7 @@ lfpind = strmatch('LFP', chantypes, 'exact');
 
 % Allow DCM on a pure LFP dataset
 if strcmp(option, 'dcm') && isempty([eegind(:); megind(:)])...
-        && ~isempty(lfpind)&& strcmp(meegstruct.transform.ID, 'time')
+        && ~isempty(lfpind) && ismember(meegstruct.transform.ID, {'time', 'TF'})
     result = 1;
     return;
 end

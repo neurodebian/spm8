@@ -8,21 +8,18 @@
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: spm_eeg_plot_interactive.m 2720 2009-02-09 19:50:46Z vladimir $
+% $Id: spm_eeg_plot_interactive.m 4614 2012-01-10 11:49:47Z vladimir $
 
 D = spm_eeg_load;
 
-data = D.ftraw;
+data = D.fttimelock;
 
 if D.ntrials > 1
     clb = D.conditions;
     ind = spm_input('Select trial',1, 'm', sprintf('%s|', clb{:}),1:D.ntrials);
-    
-    data.trial = data.trial(ind);
-    data.time =  data.time(ind);
+else
+    ind = 1;
 end
-
-data = ft_timelockanalysis([], data);
 
 cfg = [];
 cfg.interactive = 'yes';
@@ -39,10 +36,18 @@ switch D.modality
         data.grad = cfg.grad;
 end
 
-cfg.channel = data.label(chanind);
+data.label = data.label(chanind);
 %%
 figure;
-ft_multiplotER(cfg, data);
+
+if isfield(data, 'trial')
+    data.trial = data.trial(ind, chanind, :);
+    ft_multiplotER(cfg, data);
+elseif isfield(data, 'powspctrm')
+    data.powspctrm = data.powspctrm(ind, chanind, :, :);
+    ft_multiplotTFR(cfg, data);
+end
+    
 
 
 

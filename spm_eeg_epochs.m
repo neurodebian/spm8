@@ -39,9 +39,9 @@ function D = spm_eeg_epochs(S)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Stefan Kiebel
-% $Id: spm_eeg_epochs.m 4244 2011-03-14 13:33:01Z vladimir $
+% $Id: spm_eeg_epochs.m 4430 2011-08-12 18:47:17Z vladimir $
 
-SVNrev = '$Rev: 4244 $';
+SVNrev = '$Rev: 4430 $';
 
 %-Startup
 %--------------------------------------------------------------------------
@@ -170,7 +170,8 @@ rejected = find(~inbounds);
 rejected = rejected(:)';
 
 if ~isempty(rejected)
-    trl = trl(find(inbounds), :);
+    trl = trl(inbounds, :);
+    conditionlabels = conditionlabels(inbounds);
     warning([D.fname ': Events ' num2str(rejected) ' not extracted - out of bounds']);
 end
 

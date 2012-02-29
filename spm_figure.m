@@ -55,7 +55,7 @@ function varargout=spm_figure(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes
-% $Id: spm_figure.m 4272 2011-03-29 17:39:38Z guillaume $
+% $Id: spm_figure.m 4405 2011-07-22 12:54:59Z guillaume $
 
 
 %==========================================================================
@@ -299,7 +299,7 @@ else
     end 
 end
 set(F,'Pointer','Arrow')
-if ~isdocked && ~spm('CmdLine'), movegui(F); end
+%if ~isdocked && ~spm('CmdLine'), movegui(F); end
 
 %==========================================================================
 case 'close'
@@ -765,8 +765,8 @@ uimenu(t2,    'Label','Darken',    'CallBack','spm_figure(''ColorMap'',''darken'
 
 %-Font Size Menu
 t1=uimenu(t0, 'Label','&Font Size', 'HandleVisibility','off');
-uimenu(t1, 'Label','&Increase', 'CallBack','spm_figure(''FontSize'',1)');
-uimenu(t1, 'Label','&Decrease', 'CallBack','spm_figure(''FontSize'',-1)');
+uimenu(t1, 'Label','&Increase', 'CallBack','spm_figure(''FontSize'',1)',  'Accelerator', '=');
+uimenu(t1, 'Label','&Decrease', 'CallBack','spm_figure(''FontSize'',-1)', 'Accelerator', '-');
 
 %-Satellite Table
 uimenu(t0,    'Label','&Results Table', 'HandleVisibility','off', ...
@@ -838,9 +838,12 @@ case 'fontsize'
 if nargin<2, sz=0; else sz=varargin{2}; end
 
 h  = [get(0,'CurrentFigure') spm_figure('FindWin','Satellite')];
-h  = findall(h,'type','text');
+h  = [findall(h,'type','text'); findall(h,'type','uicontrol')];
 fs = get(h,'fontsize');
-set(h,{'fontsize'},cellfun(@(x) x+sz,fs,'UniformOutput',false)) ;
+if ~isempty(fs)
+    set(h,{'fontsize'},cellfun(@(x) max(x+sz,eps),fs,'UniformOutput',false));
+end
+
 
 %==========================================================================
 otherwise
@@ -1034,7 +1037,7 @@ function myscroll(obj,evt)
 ax = findobj(gcf,'Tag','textcont');
 cla(ax);
 [current, previous] = spm_authors;
-authors = {'*SPM8*' current{:} '' ...
+authors = {['*' spm('Ver') '*'] current{:} '' ...
            '*Previous versions*' previous{:} '' ...
            '*Thanks to the SPM community*'};
 x = 0.2;

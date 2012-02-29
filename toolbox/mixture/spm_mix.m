@@ -13,7 +13,13 @@ function [mix] = spm_mix (y,m,verbose)
 % The fields in mix are:
 %
 % m                The number of components
-% fm               The negative free energy
+% fm               The negative free energy. This decomposes into
+%                  fm=acc-kl_proportions-kl_covs-kl_centres
+%
+% acc              model accuracy
+% kl_proportions   complexity penalty for cluster proportions
+% kl_covs          complexity penalty for cluster covariances
+% kl_centres       complexity penalty for cluster centres
 %
 % Fields:
 %
@@ -36,7 +42,7 @@ function [mix] = spm_mix (y,m,verbose)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Will Penny 
-% $Id: spm_mix.m 3857 2010-04-30 13:11:03Z will $
+% $Id: spm_mix.m 4610 2011-12-23 18:32:27Z will $
 
 % This code implements the algorithm in:
 %
@@ -49,7 +55,6 @@ function [mix] = spm_mix (y,m,verbose)
 % Wellcome Department of Imaging Neuroscience, University College London. 
 %
 % for Negative Free Energy expression and validation.
-
 
 if nargin < 3
     verbose=1;
@@ -90,11 +95,11 @@ log_tilde_gamma_0=sd-log(det(B_0))+d*log(2);
 if (m==1)
     % For a single component we just have a Gaussian model
     
-    % Set posterios
+    % Set posteriors
     state(1).a=N+a_0;
     state(1).beta=N+beta_0;
     state(1).m=m_0;
-    Cy=cov(y);
+    Cy=cov(y,1);
     state(1).B=N*Cy+B_0;
     
     fm=spm_lg_gamma (d,0.5*state(1).a);
@@ -220,6 +225,12 @@ for loops=1:max_loops,
     end
     fm=f1+sum(f2)+sum(f3)+sum(f4)+sum(f5);
  
+    acc=sum(f5);
+    kl_labels=-sum(f4);
+    kl_proportions=-f1;
+    kl_covs=-sum(f2);
+    kl_centres=-sum(f3);
+    
     if verbose
         disp(sprintf('Iter=%d, F1=%1.2f, F2=%1.2f, F3=%1.2f, F4=%1.2f, F5=%1.2f, Fm=%1.2f',loops,f1,sum(f2),sum(f3),sum(f4),sum(f5),fm));
     end 
@@ -251,7 +262,11 @@ end
 % Put variables into data structure
 mix.m=m;
 mix.fm=fm;
-mix.fkl=fkl;
+mix.acc=acc;
+mix.kl_labels=kl_labels;
+mix.kl_proportions=kl_proportions;
+mix.kl_covs=kl_covs;
+mix.kl_centres=kl_centres;
 mix.state=state;
 mix.lambda=lambda;
 mix.gamma=gamma;

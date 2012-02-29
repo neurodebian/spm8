@@ -9,7 +9,7 @@ function spm_run_results(job)
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
-% $Id: spm_run_results.m 3753 2010-03-05 13:06:47Z guillaume $
+% $Id: spm_run_results.m 4384 2011-07-06 17:00:20Z guillaume $
 
 cspec = job.conspec;
 for k = 1:numel(cspec)
