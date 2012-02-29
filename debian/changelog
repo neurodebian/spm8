@@ -1,3 +1,9 @@
+spm8 (8.4667~dfsg.1-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Michael Hanke <mih@debian.org>  Wed, 29 Feb 2012 18:12:36 +0100
+
 spm8 (8.4290~dfsg.1-1) unstable; urgency=low
 
   * New upstream release. MEX-related patches have been merged.
