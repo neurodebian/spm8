@@ -11,28 +11,28 @@ function D = spm_eeg_downsample(S)
 % D               - MEEG object (also written on disk)
 %__________________________________________________________________________
 % 
-% This function uses the Signal Processing toolbox from The MathWorks:
+% This function uses MATLAB Signal Processing Toolbox:
 %               http://www.mathworks.com/products/signal/
 % (function resample.m) if present and an homebrew version otherwise
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Stefan Kiebel
-% $Id: spm_eeg_downsample.m 4127 2010-11-19 18:05:18Z christophe $
+% $Id: spm_eeg_downsample.m 4383 2011-07-06 15:55:39Z guillaume $
 
-SVNrev = '$Rev: 4127 $';
+SVNrev = '$Rev: 4383 $';
 
 %-Startup
 %--------------------------------------------------------------------------
 spm('FnBanner', mfilename, SVNrev);
 spm('FigName','M/EEG downsampling'); spm('Pointer','Watch');
 
-%-Test for the presence of Signal Processing Matlab toolbox
+%-Test for the presence of MATLAB Signal Processing Toolbox
 %--------------------------------------------------------------------------
-flag_TBX = license('checkout','signal_toolbox');
+flag_TBX = license('checkout','signal_toolbox') & ~isdeployed;
 if ~flag_TBX
     disp(['warning: using homemade resampling routine ' ...
-          'as signal toolbox is not available.']);
+          'as Signal Processing Toolbox is not available.']);
 end
 
 %-Get MEEG object
@@ -118,7 +118,7 @@ if strcmp(D.type, 'continuous')
         
         %loop through channels
         for j = 1:numel(blkchan)
-            d = Dtemp(j,:);
+            d = Dtemp(j,1:D.nsamples);
             Dtemp(j,:)=0; % overwrite Dtemp to save memory
             if flag_TBX % Signal Proc. Toolbox
                 Dtemp(j,1:nsamples_new) = resample(d', P, Q)';
@@ -163,7 +163,7 @@ fprintf('Elapsed time is %f seconds.\n',etime(clock,t0));               %-#
 
 %-Save new downsampled M/EEG dataset
 %--------------------------------------------------------------------------
-Dnew = fsample(Dnew, fsample_new);
+Dnew = fsample(Dnew, (P/Q)*D.fsample);
 D    = Dnew;
 D    = D.history('spm_eeg_downsample', S);
 save(D);

@@ -63,7 +63,7 @@ function varargout=spm(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes
-% $Id: spm.m 4178 2011-01-27 15:12:53Z guillaume $
+% $Id: spm.m 4392 2011-07-18 14:48:29Z guillaume $
 
 
 %=======================================================================
@@ -266,8 +266,11 @@ function varargout=spm(varargin)
 %           [default 0] (if doing both GUI & text, waits on GUI alert)
 % h       - handle of msgbox created, empty if CmdLine used
 %
-% FORMAT spm('GUI_FileDelete')
-% CallBack for GUI for file deletion, using spm_select and confirmation dialogs
+% FORMAT spm('Delete',file)
+% Delete file(s), using spm_select and confirmation dialogs.
+%
+% FORMAT spm('Run',mscript)
+% Run M-script(s), using spm_select.
 %
 % FORMAT spm('Clean')
 % Clear all variables, globals, functions, MEX links and class definitions.
@@ -438,6 +441,7 @@ if strcmpi(Modality,'EEG') && ~isdeployed
     addpath(fullfile(spm('Dir'),'external','bemcp'));
     addpath(fullfile(spm('Dir'),'external','ctf'));
     addpath(fullfile(spm('Dir'),'external','eeprobe'));
+    addpath(fullfile(spm('Dir'),'external','mne'));
     addpath(fullfile(spm('Dir'),'external','yokogawa'));
     addpath(fullfile(spm('Dir'),'toolbox', 'dcm_meeg'));
     addpath(fullfile(spm('Dir'),'toolbox', 'spectral'));
@@ -519,7 +523,34 @@ try
     end
 end
 
-%-Set toolbox
+%-Set Utils
+%-----------------------------------------------------------------------
+set(findobj(Fmenu,'Tag', 'Utils'), 'String',{'Utils...',...
+    'CD',...
+    'PWD',...
+    'Run M-file',...
+    'Load MAT-file',...
+    'Save MAT-file',...
+    'Delete files',...
+    'Show SPM'});
+set(findobj(Fmenu,'Tag', 'Utils'), 'UserData',{...
+    ['spm(''FnBanner'',''CD'');' ...
+     'cd(spm_select(1,''dir'',''Select new working directory''));' ...
+     'spm(''alert"'',{''New working directory:'',[''    '',pwd]},''CD'',1);'],...
+    ['spm(''FnBanner'',''PWD'');' ...
+     'spm(''alert"'',{''Present working directory:'',[''    '',pwd]},''PWD'',1);'],...
+    ['spm(''FnBanner'',''Run M-file'');' ...
+     'spm(''Run'');'],...
+    ['spm(''FnBanner'',''Load MAT-file'');' ...
+     'load(spm_select(1,''mat'',''Select MAT-file''));'],...
+    ['spm(''FnBanner'',''Save MAT-file'');' ...
+     'save(spm_input(''Output filename'',1,''s''));'],...
+    ['spm(''FnBanner'',''Delete files'');' ...
+     'spm(''Delete'');'],...
+    ['spm(''FnBanner'',''Show SPM'');' ...
+     'spm(''Show'');']});
+
+%-Set Toolboxes
 %-----------------------------------------------------------------------
 xTB       = spm('tbs');
 if ~isempty(xTB)
@@ -979,7 +1010,16 @@ v   = get(h,'Value');
 if v==1, return, end
 set(h,'Value',1)
 CBs = get(h,'UserData');
-evalin('base',CBs{v-1})
+CB  = CBs{v-1};
+if ischar(CB)
+    evalin('base',CB)
+elseif isa(CB,'function_handle')
+    feval(CB);
+elseif iscell(CB)
+    feval(CB{:});
+else
+    error('Invalid CallBack.');
+end
 
 
 %=======================================================================
@@ -1093,18 +1133,59 @@ if nargout, varargout = {h}; end
 
 
 %=======================================================================
-case 'gui_filedelete'                                %-GUI file deletion
+case 'run'                                               %-Run script(s)
 %=======================================================================
-% spm('GUI_FileDelete')
+% spm('Run',mscript)
 %-----------------------------------------------------------------------
-[P, sts] = spm_select(Inf,'.*','Select file(s) to delete');
-if ~sts, return; end
-P = cellstr(P);
+if nargin<2
+    [mscript, sts] = spm_select(Inf,'.*\.m$','Select M-file(s) to run');
+    if ~sts || isempty(mscript), return; end
+else
+    mscript = varargin{2};
+end
+mscript = cellstr(mscript);
+for i=1:numel(mscript)
+    if isdeployed
+        [p,n,e] = fileparts(mscript{i});
+        if isempty(p), p = pwd;  end
+        if isempty(e), e = '.m'; end
+        mscript{i} = fullfile(p,[n e]);
+        fid = fopen(mscript{i});
+        if fid == -1, error('Cannot open %s',mscript{i}); end
+        S = fscanf(fid,'%c');
+        fclose(fid);
+        try
+            evalin('base',S);
+        catch
+            fprintf('Execution failed: %s\n',mscript{i});
+            rethrow(lasterror);
+        end
+    else
+        try
+            run(mscript{i});
+        catch
+            fprintf('Execution failed: %s\n',mscript{i});
+            rethrow(lasterror);
+        end
+    end
+end
+
+
+%=======================================================================
+case 'delete'                                           %-Delete file(s)
+%=======================================================================
+% spm('Delete',file)
+%-----------------------------------------------------------------------
+if nargin<2
+    [P, sts] = spm_select(Inf,'.*','Select file(s) to delete');
+    if ~sts, return; end
+else
+    P = varargin(2:end);
+end
+P = cellstr(P); P = P(:);
 n = numel(P);
-if n==0 || (n==1 && isempty(P{1}))
-    spm('alert"','Nothing selected to delete!','file delete',0);
-    return
-elseif n<4
+if n==0 || (n==1 && isempty(P{1})), return; end
+if n<4
     str=[{' '};P];
 elseif n<11
     str=[{' '};P;{' ';sprintf('(%d files)',n)}];

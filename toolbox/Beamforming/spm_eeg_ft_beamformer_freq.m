@@ -10,8 +10,8 @@ function spm_eeg_ft_beamformer_freq(S)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: spm_eeg_ft_beamformer_freq.m 3949 2010-06-25 14:33:57Z vladimir $
-        
+% $Id: spm_eeg_ft_beamformer_freq.m 4561 2011-11-12 16:27:19Z vladimir $
+
 [Finter,Fgraph] = spm('FnUIsetup','Fieldtrip beamformer for power', 0);
 %%
 
@@ -50,11 +50,20 @@ end
 modality = spm_eeg_modality_ui(D, 1, 1);
 channel = D.chanlabels(strmatch(modality, D.chantype))';
 
-if isfield(S, 'refchan') && ~isempty(S.refchan)
-    refchan = S.refchan;
-else
-    refchan = [];
+if ~isfield(S, 'refchan') 
+    if spm_input('What to beam?','+1', 'power|coherence', [0, 1]);    
+        [selection, ok]= listdlg('ListString', D.chanlabels, 'SelectionMode', 'single' ,'Name', 'Select reference' , 'ListSize', [400 300]);
+        if ~ok
+            return;
+        end
+        refchan = D.chanlabels(selection);
+        S.refchan = refchan;
+    else
+        S.refchan = [];
+    end
 end
+
+refchan = S.refchan;
 
 %% ============ Find or prepare head model
 
@@ -101,9 +110,7 @@ clb = D.condlist;
 
 if ~isfield(S, 'conditions')
     if numel(clb) > 1
-        
         [selection, ok]= listdlg('ListString', clb, 'SelectionMode', 'multiple' ,'Name', 'Select conditions' , 'ListSize', [400 300]);
-        
         if ~ok
             return;
         end
@@ -126,9 +133,8 @@ if isempty(ind)
     return;
 end
 %%
-data = D.ftraw(0); 
-data.trial = data.trial(ind);
-data.time =  data.time(ind);
+data = D.fttimelock;
+data.trial = data.trial(ind, :, :);
 %%
 if ~isfield(S, 'freqrange')
     if ~(isfield(S, 'centerfreq') && isfield(S, 'tapsmofrq'))
@@ -142,8 +148,6 @@ else
 end
 
 cfg = [];
-cfg.keeptrials = 'yes';
-cfg.channel    = [channel; refchan];
 %%
 if ~isfield(S, 'timewindows')
     for i = 1:spm_input('Number of time windows:', '+1', 'r', '1', 1)
@@ -152,8 +156,7 @@ if ~isfield(S, 'timewindows')
 end
 
 for i = 1:numel(S.timewindows)
-    cfg.latency = S.timewindows{i};
-    timelock{i} = ft_timelockanalysis(cfg,data);
+    timelock{i} = ft_selectdata(data, 'channel', [channel; refchan], 'toilim', S.timewindows{i}, 'avgoverrpt', 'no');
 end
 
 %%
@@ -165,7 +168,7 @@ elseif ~isfield(S, 'contrast')
     else
         def = '';
     end
-
+    
     S.contrast = spm_input('Contrast vector:', '+1', 'r', def, i);
 end
 %%
@@ -177,9 +180,36 @@ if ~isfield(S, 'gridres')
     S.gridres = spm_input('Grid resolution (mm)', '+1', 'r', '10');
 end
 
-if ~isfield(S, 'preview')
-    S.preview = spm_input('Preview results?','+1', 'yes|no', [1, 0]);
+if ~any(ismember({'bycondition', 'preview', 'singleimage'}, fieldnames(S)))
+   switch spm_input('Output format','+1', 'm', 'single image|image per condition|image per trial|preview', ...
+        char('singleimage', 'bycondition', 'trials', 'preview'))
+       case 'singleimage'
+           S.singleimage = 1;
+           S.preview = 0;
+           S.bycondition = 0;
+       case 'bycondition'
+           S.singleimage = 1;
+           S.preview = 0;
+           S.bycondition = 1;
+       case 'trials'
+           S.singleimage = 0;
+           S.preview = 0;
+           S.bycondition = 0;           
+       case 'preview'
+           S.singleimage = 0;
+           S.preview = 1;
+           S.bycondition = 0;                      
+   end
 end
+    
+if ~isfield(S, 'normalize')
+  S.normalize = spm_input('Global normalization?','+1','yes|no',[1 0], 1);
+end
+
+if ~isfield(S, 'mniout')
+  S.mniout = spm_input('Output space?','+1','MNI-aligned|MNI template',[0 1], 0);
+end
+
 %%
 cfg = [];
 cfg.method    = 'mtmfft';
@@ -196,7 +226,7 @@ if isfield(S, 'usewholetrial') && S.usewholetrial
     cfg.channel = channel;
     cfg.channelcmb = ft_channelcombination({'all', 'all'}, channel);
     if ~isempty(refchan)
-         cfg.channelcmb =  [cfg.channelcmb; ft_channelcombination({'all', refchan}, [channel; {refchan}])];
+        cfg.channelcmb =  [cfg.channelcmb; ft_channelcombination({'all', refchan}, [channel; {refchan}])];
     end
     filtfreq = ft_freqanalysis(cfg, data);
 end
@@ -228,12 +258,20 @@ end
 cfg.channel = D.chanlabels(D.meegchannels(modality));
 cfg.vol                   = vol;
 
-cfg.grid.xgrid = -90:S.gridres:90;
-cfg.grid.ygrid = -120:S.gridres:100;
-cfg.grid.zgrid = -70:S.gridres:110;
+mnigrid.xgrid = -90:S.gridres:90;
+mnigrid.ygrid = -120:S.gridres:100;
+mnigrid.zgrid = -50:S.gridres:110;
+
+mnigrid.dim   = [length(mnigrid.xgrid) length(mnigrid.ygrid) length(mnigrid.zgrid)];
+[X, Y, Z]  = ndgrid(mnigrid.xgrid, mnigrid.ygrid, mnigrid.zgrid);
+mnigrid.pos   = [X(:) Y(:) Z(:)];
+
+cfg.grid.dim = mnigrid.dim;
+cfg.grid.pos = spm_eeg_inv_transform_points(M1*datareg.fromMNI, mnigrid.pos);
 cfg.inwardshift = -10;
-grid            = ft_prepare_leadfield(cfg);          
- 
+
+grid            = ft_prepare_leadfield(cfg);
+
 
 cfg = [];
 
@@ -275,6 +313,10 @@ else
 end
 
 if isfield(S, 'geteta') && S.geteta
+    if isfield(S, 'mniout') && S.mniout
+        filtsource.pos = mnigrid.pos;
+        filtsource.dim = mnigrid.dim;
+    end
     save(fullfile(D.path, 'ori.mat'), 'filtsource');
 end
 %
@@ -284,72 +326,120 @@ cfg.grid.filter  = filtsource.avg.filter; % use the filter computed in the previ
 sMRI = fullfile(spm('dir'), 'canonical', 'single_subj_T1.nii');
 
 if (isfield(S, 'preview') && S.preview) || ~isempty(refchan) ||...
-      (isfield(S, 'singleimage') && S.singleimage)  
-    for i = 1:numel(freq)
-        source{i}   = ft_sourceanalysis(cfg, freq{i});
+        (isfield(S, 'singleimage') && S.singleimage)
+    if S.bycondition       
+        cl = unique(condvec);        
+        ni = length(cl);        
+    else
+        ni = 1;
     end
-
-    %
-    pow = [];
-    for i = 1:numel(source)
-        if isempty(refchan)
-            pow = [pow source{i}.avg.pow(:)];
-        else
-            pow = [pow source{i}.avg.coh(:)];
+    
+    for c = 1:ni
+        source = {};
+        
+        for t = 1:length(unique(timevec))
+            cfreq = freqall;
+            
+            if S.bycondition    
+                cind = find(timevec == t & condvec == cl(c));
+            else
+                cind = find(timevec == t);
+            end
+            
+            cfreq.powspctrm = cfreq.powspctrm(cind, :);
+            cfreq.crsspctrm = cfreq.crsspctrm(cind, :);
+            cfreq.cumsumcnt = cfreq.cumsumcnt(cind);
+            cfreq.cumtapcnt = cfreq.cumtapcnt(cind);
+            source{t}   = ft_sourceanalysis(cfg, cfreq);
+        end
+        
+        %
+        pow = [];
+        for i = 1:numel(source)
+            if isempty(refchan)
+                pow = [pow source{i}.avg.pow(:)];
+            else
+                pow = [pow source{i}.avg.coh(:)];
+            end
+        end
+        
+        
+        if isfield(S, 'normalize') && S.normalize
+            pow = pow./mean(pow(~isnan(pow)));
+        end
+        
+        csource = source{1};
+        csource.pow = (pow*S.contrast(:));
+        
+        if isfield(S, 'mniout') && S.mniout
+            csource.pos = mnigrid.pos;
+            csource.dim = mnigrid.dim;
+        end
+        
+        
+        cfg1 = [];
+        cfg1.sourceunits   = 'mm';
+        cfg1.parameter = 'pow';
+        cfg1.downsample = 1;
+        sourceint = ft_sourceinterpolate(cfg1, csource, sMRI);
+        %%
+        
+        if (isfield(S, 'preview') && S.preview)
+            cfg1 = [];
+            cfg1.funparameter = 'pow';
+            cfg1.funcolorlim = 0.1*[-1 1]*max(abs(csource.pow));
+            if ~(S.bycondition && numel(cind)>1)
+                cfg1.interactive = 'yes';
+            end
+            figure
+            ft_sourceplot(cfg1,sourceint);
+        end
+        
+        if ~isempty(refchan) || (isfield(S, 'singleimage') && S.singleimage)
+            res = mkdir(D.path, 'images');
+            outvol = spm_vol(sMRI);
+            outvol.dt(1) = spm_type('float32');
+            
+            outvol.fname= fullfile(D.path, 'images', ['img_' spm_str_manip(D.fname, 'r')]);
+            
+            if S.bycondition
+                outvol.fname= [outvol.fname '_' clb{cl(c)}];
+            end
+            
+            if ~isempty(refchan)
+                outvol.fname= [outvol.fname '_coh.nii'];
+            else
+                outvol.fname= [outvol.fname '.nii'];
+            end
+            
+            outvol = spm_create_vol(outvol);
+            spm_write_vol(outvol, sourceint.pow);
         end
     end
-
-    
-    if isfield(S, 'normalize') && S.normalize
-        pow = pow./mean(pow(~isnan(pow)));
-    end
-    
-    csource = source{1};
-    csource.pow = (pow*S.contrast(:));    
-              
-    cfg1 = [];
-    cfg1.sourceunits   = 'mm';  
-    cfg1.parameter = 'pow';
-    cfg1.downsample = 1;
-    sourceint = ft_sourceinterpolate(cfg1, csource, sMRI);
-    %%
-    
-    if (isfield(S, 'preview') && S.preview)
-        cfg1 = [];
-        cfg1.funparameter = 'pow';
-        cfg1.funcolorlim = 0.1*[-1 1]*max(abs(csource.pow));
-        cfg1.interactive = 'yes';
-        figure
-        ft_sourceplot(cfg1,sourceint);
-    end
-    
-    if ~isempty(refchan) || (isfield(S, 'singleimage') && S.singleimage)  
-        res = mkdir(D.path, 'images');
-        outvol = spm_vol(sMRI);        
-        outvol.dt(1) = spm_type('float32');
-        outvol.fname= fullfile(D.path, 'images', ['img_' spm_str_manip(D.fname, 'r') '_coh.nii']);
-        outvol = spm_create_vol(outvol);
-        spm_write_vol(outvol, sourceint.pow);
-    end
-else       
+else
     cfg.rawtrial     = 'yes';
     
-    source   = ft_sourceanalysis(cfg, freqall);    
-     
+    source   = ft_sourceanalysis(cfg, freqall);
+    
+    if isfield(S, 'mniout') && S.mniout
+        source.pos = mnigrid.pos;
+        source.dim = mnigrid.dim;
+    end
+    
     clear('data', 'csource', 'filtsource', 'timelock', 'freq', 'grid', 'freqall');
-   
+    
     cfg = [];
     cfg.sourceunits   = 'mm';
     cfg.parameter = 'pow';
     cfg.downsample = 1;
     %
     res = mkdir(D.path, 'images');
-
+    
     outvol = spm_vol(sMRI);
     %
     outvol.dt(1) = spm_type('float32');
-
-    trialind = unique(trialvec);        
+    
+    trialind = unique(trialvec);
     
     pow = nan(size(source.pos, 1), length(S.contrast));
     
@@ -357,19 +447,19 @@ else
         ind = find(trialvec == trialind(i));
         
         cond = unique(condvec(ind));
-
+        
         for j = 1:length(ind)
             pow(:, j) = source.trial(ind(j)).pow(:);
         end
-                
+        
         if isfield(S, 'normalize') && S.normalize
             pow = pow./mean(pow(~isnan(pow)));
         end
         
         source.pow = (pow*S.contrast(:));
-
+        
         sourceint = ft_sourceinterpolate(cfg, source, sMRI);
-
+        
         outvol.fname= fullfile(D.path, 'images', ['img_' spm_str_manip(D.fname, 'r') '_' clb{cond} '_trial_' num2str(trialind(i)) '.nii']);
         outvol = spm_create_vol(outvol);
         spm_write_vol(outvol, sourceint.pow);

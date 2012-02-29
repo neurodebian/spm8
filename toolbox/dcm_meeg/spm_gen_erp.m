@@ -15,7 +15,7 @@ function [y] = spm_gen_erp(P,M,U)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_gen_erp.m 4281 2011-03-31 19:49:57Z karl $
+% $Id: spm_gen_erp.m 4611 2012-01-03 14:05:18Z vladimir $
 
 % within-trial inputs
 %==========================================================================
@@ -34,7 +34,7 @@ U.u = feval(fu,[1:ns]*U.dt,P,M);
 %==========================================================================
 try
     X = U.X;
-    if isempty(X)
+    if all(~size(X))
         X = sparse(1,0);
     end
 catch
@@ -64,10 +64,15 @@ for  c = 1:size(X,1)
     %----------------------------------------------------------------------
     for i = 1:size(X,2)
 
-        Q.A{1}  = Q.A{1} + X(c,i)*P.B{i};         % forward connections
-        Q.A{2}  = Q.A{2} + X(c,i)*P.B{i};         % backward connections
-        Q.A{3}  = Q.A{3} + X(c,i)*P.B{i};         % lateral connections
-
+      Q.A{1} = Q.A{1} + X(c,i)*P.B{i};          % Forward  connections 
+      Q.A{2} = Q.A{2} + X(c,i)*P.B{i};          % Backward connections
+      Q.A{3} = Q.A{3} + X(c,i)*P.B{i};          % Lateral connections 
+      
+      % for cmc
+      try 
+          Q.A{4} = Q.A{4} + X(c,i)*P.B{i};         % Backward connections 
+      end
+      
         % intrinsic connections
         %----------------------------------------------------------------------
         try

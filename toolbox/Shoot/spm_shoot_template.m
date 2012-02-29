@@ -14,7 +14,7 @@ function out = spm_shoot_template(job)
 % Copyright (C) Wellcome Trust Centre for Neuroimaging (2009)
 
 % John Ashburner
-% $Id: spm_shoot_template.m 4264 2011-03-25 19:18:33Z john $
+% $Id: spm_shoot_template.m 4324 2011-05-06 11:29:30Z john $
 
 %_______________________________________________________________________
 d       = spm_shoot_defaults;
@@ -298,7 +298,7 @@ for it=1:nits,
 
     % Write template
     if ~isempty(tname),
-        NG.dat.fname    = fullfile(tdir,[tname '_' num2str(ceil(it/3)) '.nii']);
+        NG.dat.fname    = fullfile(tdir,[tname '_' num2str(ceil(it/6)) '.nii']);
         create(NG);
         for j=1:n1+1,
             NG.dat(:,:,:,j) = g{j};

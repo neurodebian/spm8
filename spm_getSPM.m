@@ -182,7 +182,7 @@ function [SPM,xSPM] = spm_getSPM(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes, Karl Friston & Jean-Baptiste Poline
-% $Id: spm_getSPM.m 4225 2011-03-02 15:53:05Z guillaume $
+% $Id: spm_getSPM.m 4642 2012-02-03 12:45:10Z guillaume $
 
 
 %-GUI setup
@@ -488,7 +488,9 @@ if isfield(SPM,'PPM')
     
     % Set Bayesian con type
     %----------------------------------------------------------------------
-    SPM.PPM.xCon(Ic).PSTAT = xCon(Ic).STAT;
+    if length(SPM.PPM.xCon)<Ic || ~isfield(SPM.PPM.xCon(Ic), 'PSTAT') || isempty(SPM.PPM.xCon(Ic).PSTAT)
+        SPM.PPM.xCon(Ic).PSTAT = xCon(Ic).STAT;
+    end
     
     % Make all new contrasts Bayesian contrasts 
     %----------------------------------------------------------------------
@@ -743,9 +745,13 @@ if STAT ~= 'P'
 %--------------------------------------------------------------------------
 elseif STAT == 'P'
     
-    u_default = 1 - 1/SPM.xVol.S;
-    str       = 'Posterior probability threshold for PPM';
-    u         = spm_input(str,'+0','r',u_default,1);
+    try
+        u = xSPM.u;
+    catch
+        u_default = 1 - 1/SPM.xVol.S;
+        str       = 'Posterior probability threshold for PPM';
+        u         = spm_input(str,'+0','r',u_default,1);
+    end
     thresDesc = ['P>'  num2str(u) ' (PPM)'];
     
 end % (if STAT)

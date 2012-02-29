@@ -34,7 +34,7 @@ function out = spm_dicom_convert(hdr,opts,root_dir,format)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner & Jesper Andersson
-% $Id: spm_dicom_convert.m 4213 2011-02-23 19:18:30Z john $
+% $Id: spm_dicom_convert.m 4368 2011-06-20 11:59:54Z john $
 
 
 if nargin<2, opts     = 'all'; end
@@ -58,7 +58,7 @@ if (strcmp(opts,'all') || strcmp(opts,'spect')) && ~isempty(spect),
     fspe = convert_spectroscopy(spect,root_dir,format);
 end;
 
-out.files = [fmos fstd fspe];
+out.files = [fmos(:); fstd(:); fspe(:)];
 if isempty(out.files)
     out.files = {''};
 end;
@@ -536,11 +536,17 @@ mat              = patient_to_tal*dicom_to_patient*analyze_to_dicom;
 if checkfields(hdr{1},'AcquisitionTime','MagneticFieldStrength','MRAcquisitionType',...
         'ScanningSequence','RepetitionTime','EchoTime','FlipAngle',...
         'AcquisitionDate'),
+    if isfield(hdr{1},'ScanOptions'),
+        ScanOptions = hdr{1}.ScanOptions;
+    else
+        ScanOptions = 'no';
+    end
     tim = datevec(hdr{1}.AcquisitionTime/(24*60*60));
-    descrip = sprintf('%gT %s %s TR=%gms/TE=%gms/FA=%gdeg %s %d:%d:%.5g',...
+    descrip = sprintf('%gT %s %s TR=%gms/TE=%gms/FA=%gdeg/SO=%s %s %d:%d:%.5g',...
         hdr{1}.MagneticFieldStrength, hdr{1}.MRAcquisitionType,...
         deblank(hdr{1}.ScanningSequence),...
         hdr{1}.RepetitionTime,hdr{1}.EchoTime,hdr{1}.FlipAngle,...
+        ScanOptions,...
         datestr(hdr{1}.AcquisitionDate),tim(4),tim(5),tim(6));
 else
     descrip = hdr{1}.Modality;
@@ -807,15 +813,25 @@ for i=1:length(hdr),
         disp(['Cant find "Image Plane" information for "' hdr{i}.Filename '".']);
         guff = [guff(:)',hdr(i)];
     elseif ~checkfields(hdr{i},'PatientID','SeriesNumber','AcquisitionNumber','InstanceNumber'),
-        disp(['Cant find suitable filename info for "' hdr{i}.Filename '".']);
+       %disp(['Cant find suitable filename info for "' hdr{i}.Filename '".']);
         if ~isfield(hdr{i},'SeriesNumber')
             disp('Setting SeriesNumber to 1');
             hdr{i}.SeriesNumber=1;
             images = [images(:)',hdr(i)];
         end;
         if ~isfield(hdr{i},'AcquisitionNumber')
-            disp('Setting AcquisitionNumber to 1');
-            hdr{i}.AcquisitionNumber=1;
+            if isfield(hdr{i},'Manufacturer') && ~isempty(strfind(upper(hdr{1}.Manufacturer), 'PHILIPS'))
+                % WHY DO PHILIPS DO THINGS LIKE THIS????
+                if isfield(hdr{i},'InstanceNumber')
+                     hdr{i}.AcquisitionNumber = hdr{i}.InstanceNumber;
+                else
+                     disp('Setting AcquisitionNumber to 1');
+                     hdr{i}.AcquisitionNumber=1;
+                end
+             else
+                disp('Setting AcquisitionNumber to 1');
+                hdr{i}.AcquisitionNumber=1;
+             end
             images = [images(:)',hdr(i)];
         end;
         if ~isfield(hdr{i},'InstanceNumber')
@@ -905,20 +921,27 @@ if fp==-1,
     return;
 end;
 
-if isfield(hdr,'TransferSyntaxUID') && strcmp(hdr.TransferSyntaxUID,'1.2.840.10008.1.2.4.70')
-    % try to read PixelData as JPEG image - offset is just a guess
-    offset = 16;
-    fseek(fp,hdr.StartOfPixelData+offset,'bof');
-    img = fread(fp,Inf,'*uint8');
-    % save PixelData into temp file - imread and its subroutines can only
-    % read from file, not from memory
-    tfile = tempname;
-    tfp = fopen(tfile,'w+');
-    fwrite(tfp,img,'uint8');
-    fclose(tfp);
-    % read decompressed data, transpose to match DICOM row/column order
-    img = imread(tfile)';
-    delete(tfile);
+if isfield(hdr,'TransferSyntaxUID')
+    switch(hdr.TransferSyntaxUID)
+    case {'1.2.840.10008.1.2.4.50','1.2.840.10008.1.2.4.51','1.2.840.10008.1.2.4.70',...
+          '1.2.840.10008.1.2.4.80','1.2.840.10008.1.2.4.90','1.2.840.10008.1.2.4.91'},
+        % try to read PixelData as JPEG image - offset is just a guess
+        offset = 16;
+        fseek(fp,hdr.StartOfPixelData+offset,'bof');
+        img = fread(fp,Inf,'*uint8');
+        % save PixelData into temp file - imread and its subroutines can only
+        % read from file, not from memory
+        tfile = tempname;
+        tfp = fopen(tfile,'w+');
+        fwrite(tfp,img,'uint8');
+        fclose(tfp);
+        % read decompressed data, transpose to match DICOM row/column order
+        img = imread(tfile)';
+        delete(tfile);
+    otherwise
+        fseek(fp,hdr.StartOfPixelData,'bof');
+        img = fread(fp,hdr.Rows*hdr.Columns,prec);
+    end
 else
     fseek(fp,hdr.StartOfPixelData,'bof');
     img = fread(fp,hdr.Rows*hdr.Columns,prec);
@@ -1202,7 +1225,7 @@ if hdr.HighBit>16
         dt  = [spm_type('uint32') be];
     end
 else
-    if hdr.PixelRepresentation
+    if hdr.PixelRepresentation || hdr.HighBit<=15
         dt  = [spm_type( 'int16') be];
     else
         dt  = [spm_type('uint16') be];

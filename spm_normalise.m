@@ -1,5 +1,5 @@
 function params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
-% Spatial (stereotactic) normalization
+% Spatial (stereotactic) normalisation
 %
 % FORMAT params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
 % VG        - template handle(s)
@@ -8,18 +8,18 @@ function params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
 % VWG       - template weighting image
 % VWF       - source weighting image
 % flags     - flags.  If any field is not passed, then defaults are assumed.
+%             (defaults values are defined in spm_defaults.m)
 %             smosrc - smoothing of source image (FWHM of Gaussian in mm).
-%                      Defaults to 8.
 %             smoref - smoothing of template image (defaults to 0).
 %             regtype - regularisation type for affine registration
-%                       See spm_affreg.m (default = 'mni').
+%                       See spm_affreg.m
 %             cutoff  - Cutoff of the DCT bases.  Lower values mean more
-%                       basis functions are used (default = 30mm).
-%             nits    - number of nonlinear iterations (default=16).
-%             reg     - amount of regularisation (default=0.1)
-% ___________________________________________________________________________
+%                       basis functions are used
+%             nits    - number of nonlinear iterations
+%             reg     - amount of regularisation
+% _________________________________________________________________________
 % 
-% This module spatially (stereotactically) normalizes MRI, PET or SPECT
+% This module spatially (stereotactically) normalises MRI, PET or SPECT
 % images into a standard space defined by some ideal model or template
 % image[s].  The template images supplied with SPM conform to the space
 % defined by the ICBM, NIH P-20 project, and approximate that of the
@@ -84,11 +84,10 @@ function params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
 % be entered at once, and there is no restriction on image dimensions
 % or voxel size.
 % 
-% Providing that the images have a correct ".mat" file associated with
-% them, which describes the spatial relationship between them, it is
+% Providing that the images have a correct voxel-to-world mapping,
+% which describes the spatial relationship between them, it is
 % possible to spatially normalise the images without having first
-% resliced them all into the same space. The ".mat" files are generated
-% by "spm_realign" or "spm_coregister".
+% resliced them all into the same space.
 % 
 % Default values of parameters pertaining to the extent and sampling of
 % the standard space can be changed, including the model or template
@@ -96,13 +95,10 @@ function params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
 % 
 % 
 % Outputs
-% All normalized *.img scans are written to the same subdirectory as
-% the original *.img, prefixed with a 'n' (i.e. n*.img).  The details
-% of the transformations are displayed in the results window, and the
-% parameters are saved in the "*_sn.mat" file.
+% The details of the transformations are displayed in the results window,
+% and the parameters are saved in the "*_sn.mat" file.
 % 
-% 
-%____________________________________________________________________________
+%__________________________________________________________________________
 % Refs:
 % K.J. Friston, J. Ashburner, C.D. Frith, J.-B. Poline,
 % J.D. Heather, and R.S.J. Frackowiak
@@ -116,11 +112,11 @@ function params = spm_normalise(VG,VF,matname,VWG,VWF,flags)
 % J. Ashburner and K. J. Friston
 % Nonlinear Spatial Normalization using Basis Functions.
 % Human Brain Mapping 7(4):in press (1999)
-%_______________________________________________________________________
-% Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
+%__________________________________________________________________________
+% Copyright (C) 2002-2011 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_normalise.m 4185 2011-02-01 18:46:18Z guillaume $
+% $Id: spm_normalise.m 4621 2012-01-13 11:12:40Z guillaume $
 
 
 if nargin<2, error('Incorrect usage.'); end;
@@ -164,7 +160,7 @@ for i=1:numel(VG),
 end;
 
 % Affine Normalisation
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 fprintf('Coarse Affine Registration..\n');
 aflags    = struct('sep',max(flags.smoref,flags.smosrc), 'regtype',flags.regtype,...
     'WG',[],'WF',[],'globnorm',0);
@@ -184,7 +180,7 @@ Affine     = inv(VG(1).mat\M*VF1(1).mat);
 spm_plot_convergence('Clear');
 
 % Basis function Normalisation
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 fov = VF1(1).dim(1:3).*sqrt(sum(VF1(1).mat(1:3,1:3).^2));
 if any(fov<15*flags.smosrc/2 & VF1(1).dim(1:3)<15),
     fprintf('Field of view too small for nonlinear registration\n');
@@ -206,7 +202,7 @@ params = struct('Affine',Affine, 'Tr',Tr, 'VF',VF, 'VG',VG, 'flags',flags);
 if flags.graphics, spm_normalise_disp(params,VF); end;
 
 % Remove dat fields before saving
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 if isfield(VF,'dat'), VF = rmfield(VF,'dat'); end;
 if isfield(VG,'dat'), VG = rmfield(VG,'dat'); end;
 if ~isempty(matname),
@@ -218,14 +214,14 @@ if ~isempty(matname),
     end;
 end;
 return;
-%_______________________________________________________________________
+%__________________________________________________________________________
 
-%_______________________________________________________________________
+%__________________________________________________________________________
 function Tr = snbasis(VG,VF,VWG,VWF,Affine,fwhm,cutoff,nits,reg)
 % 3D Basis Function Normalization
 % FORMAT Tr = snbasis(VG,VF,VWG,VWF,Affine,fwhm,cutoff,nits,reg)
 % VG        - Template volumes (see spm_vol).
-% VF        - Volume to normalize.
+% VF        - Volume to normalise.
 % VWG       - weighting Volume - for template.
 % VWF       - weighting Volume - for object.
 % Affine    - A 4x4 transformation (in voxel space).
@@ -238,17 +234,17 @@ function Tr = snbasis(VG,VF,VWG,VWF,Affine,fwhm,cutoff,nits,reg)
 % snbasis performs a spatial normalization based upon a 3D
 % discrete cosine transform.
 %
-%______________________________________________________________________
+%__________________________________________________________________________
 
 fwhm    = [fwhm 30];
 
 % Number of basis functions for x, y & z
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 tmp  = sqrt(sum(VG(1).mat(1:3,1:3).^2));
 k    = max(round((VG(1).dim(1:3).*tmp)/cutoff),[1 1 1]);
 
 % Scaling is to improve stability.
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 stabilise = 8;
 basX = spm_dctmtx(VG(1).dim(1),k(1))*stabilise;
 basY = spm_dctmtx(VG(1).dim(2),k(2))*stabilise;
@@ -268,7 +264,7 @@ if 1,
         % BENDING ENERGY REGULARIZATION
         % Estimate a suitable sparse diagonal inverse covariance matrix for
         % the parameters (IC0).
-        %-----------------------------------------------------------------------
+        %------------------------------------------------------------------
     IC0 = (1*kron(kz.^2,kron(ky.^0,kx.^0)) +...
            1*kron(kz.^0,kron(ky.^2,kx.^0)) +...
            1*kron(kz.^0,kron(ky.^0,kx.^2)) +...
@@ -280,7 +276,7 @@ if 1,
         IC0 = sparse(1:length(IC0),1:length(IC0),IC0,length(IC0),length(IC0));
 else
         % MEMBRANE ENERGY (LAPLACIAN) REGULARIZATION
-        %-----------------------------------------------------------------------
+        %------------------------------------------------------------------
         IC0 = kron(kron(oz,oy),kx) + kron(kron(oz,ky),ox) + kron(kron(kz,oy),ox);
         IC0 = reg*IC0*stabilise^6;
         IC0 = [IC0*vx2(1)^2 ; IC0*vx2(2)^2 ; IC0*vx2(3)^2 ; zeros(prod(size(VG))*4,1)];
@@ -288,7 +284,7 @@ else
 end;
 
 % Generate starting estimates.
-%-----------------------------------------------------------------------
+%--------------------------------------------------------------------------
 s1 = 3*prod(k);
 s2 = s1 + numel(VG)*4;
 T  = zeros(s2,1);
@@ -305,11 +301,7 @@ for iter=1:nits,
     fprintf(' FWHM = %6.4g Var = %g\n', fw,Var);
 end;
 
-% Values of the 3D-DCT - for some bizarre reason, this needs to be done
-% as two seperate statements in Matlab 6.5...
-%-----------------------------------------------------------------------
-Tr = reshape(T(1:s1),[k 3]);
-drawnow;
-Tr = Tr*stabilise.^3;
+% Values of the 3D-DCT
+%--------------------------------------------------------------------------
+Tr = reshape(T(1:s1),[k 3]) * stabilise.^3;
 return;
-
