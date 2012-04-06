@@ -937,9 +937,11 @@ end
  
 %-Delete the residuals images
 %==========================================================================
-j = spm_select('List',SPM.swd,'^ResI_.{4}\..{3}$');
-for  k = 1:size(j,1)
-    spm_unlink(deblank(j(k,:)));
+if spm_get_defaults('stats.saveres') == 0
+    j = spm_select('List',SPM.swd,'^ResI_.{4}\..{3}$');
+    for  k = 1:size(j,1)
+        spm_unlink(deblank(j(k,:)));
+    end
 end
  
  

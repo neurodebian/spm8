@@ -62,6 +62,7 @@ defaults.dicom.root     = 'flat'; % Folder hierarchy
 %=======================================================================
 defaults.stats.maxmem       = 2^26;
 defaults.stats.maxres       = 64;
+defaults.stats.saveres	    = 0;
 defaults.stats.fmri.ufp     = 0.001;  % Upper tail F-probability
 defaults.stats.pet.ufp      = 0.05;
 defaults.stats.eeg.ufp      = 1;
