@@ -31,7 +31,7 @@ function DCM = spm_dcm_erp_data(DCM,h)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_dcm_erp_data.m 4367 2011-06-15 17:04:45Z vladimir $
+% $Id: spm_dcm_erp_data.m 4914 2012-09-11 16:09:40Z vladimir $
  
  
 % Set defaults and Get D filename
@@ -191,7 +191,7 @@ R      = speye(Ns) - X0*X0';
 % hanning
 %--------------------------------------------------------------------------
 if han
-    R  = R*diag(hanning(Ns))*R;
+    R  = R*diag(spm_hanning(Ns))*R;
 end
  
 % adjust data

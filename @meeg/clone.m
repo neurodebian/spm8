@@ -11,14 +11,14 @@ function new = clone(this, fnamedat, dim, reset)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Stefan Kiebel, Vladimir Litvak
-% $Id: clone.m 4207 2011-02-22 10:48:36Z christophe $
+% $Id: clone.m 4781 2012-07-10 15:59:45Z vladimir $
 
 if nargin < 4
     reset = 0;
 end
 
 if nargin < 3
-    if ~strcmp(transformtype(this), 'TF')
+    if ~strncmpi(transformtype(this), 'TF', 2) 
         dim = [nchannels(this), nsamples(this), ntrials(this)];
     else
         dim = [nchannels(this), nfrequencies(this), nsamples(this), ntrials(this)];

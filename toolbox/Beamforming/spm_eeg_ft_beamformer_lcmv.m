@@ -9,7 +9,7 @@ function [stats,mnipositions]=spm_eeg_ft_beamformer_lcmv(S)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % Gareth Barnes
-% $Id: spm_eeg_ft_beamformer_lcmv.m 4344 2011-06-07 14:58:43Z gareth $
+% $Id: spm_eeg_ft_beamformer_lcmv.m 5178 2013-01-07 11:58:30Z ged $
 
 [Finter,Fgraph] = spm('FnUIsetup','univariate LCMV beamformer for power', 0);
 %%
@@ -255,7 +255,7 @@ Nsamples= diff(Isamples)+1;
 Nchans=length(channel_labels);
 
 if S.hanning,
-    fftwindow=hamming(Nsamples);
+    fftwindow=spm_hanning(Nsamples);
 else
     disp('not windowing');
     fftwindow=ones(Nsamples,1);
@@ -354,7 +354,7 @@ cfg.vol                   = vol;
 
  
 if  isempty(S.gridpos),
-    cfg.resolution            = S.gridstep;
+    cfg.grid.resolution            = S.gridstep;
 else
     disp('USING pre-specified gridpoints');
     cfg.grid.pos=S.gridpos; %% predefined grid
@@ -363,8 +363,9 @@ else
     end;
 
     
-cfg.feedback='off';
-cfg.inwardshift           = 0; % mm
+cfg.feedback    = 'off';
+cfg.inwardshif  = 0; % mm
+cfg.sourceunits = 'mm';
 
 if ~isfield(S,'grid'),
     disp('preparing leadfield');
@@ -405,7 +406,7 @@ disp('now running through freq bands and constructing t stat images');
 origfftnewdata=fftnewdata;
 for boot=1:Nboot,
     
-    bttrials=randi(Ntrials,Ntrials,1);
+    bttrials=floor(rand(1,Ntrials)*Ntrials)+1;
     if boot==1,
         bttrials=1:Ntrials;
     else
@@ -632,13 +633,13 @@ end; % if
     cfg1.sourceunits   = 'mm';
     cfg1.parameter = 'pow_tstat';
     cfg1.downsample = 1;
-    sourceint_pow_tstat = ft_sourceinterpolate(cfg1, csource, sMRI);
+    sourceint_pow_tstat = ft_sourceinterpolate(cfg1, csource, ft_read_mri(sMRI, 'format', 'nifti_spm'));
     
      cfg1 = [];
      cfg1.sourceunits   = 'mm';
      cfg1.parameter = 'normdiff';
      cfg1.downsample = 1;
-     sourceint_normdiff= ft_sourceinterpolate(cfg1, csource, sMRI);
+     sourceint_normdiff= ft_sourceinterpolate(cfg1, csource, ft_read_mri(sMRI, 'format', 'nifti_spm'));
 %     
     
     

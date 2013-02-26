@@ -17,7 +17,7 @@ function V4 = spm_file_merge(V,fname,dt)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_file_merge.m 3613 2009-12-04 18:47:59Z guillaume $
+% $Id: spm_file_merge.m 5041 2012-11-07 16:40:01Z guillaume $
 
 %-Input: V
 %--------------------------------------------------------------------------
@@ -57,8 +57,8 @@ end
 %-Set scalefactors and offsets
 %==========================================================================
 d = cat(1,V.dt); d = d(:,1);
-s = cat(1,V.pinfo); s = s(1,:);
-o = cat(1,V.pinfo); o = o(2,:);
+s = cat(2,V.pinfo); s = s(1,:);
+o = cat(2,V.pinfo); o = o(2,:);
 
 %-Reuse parameters of input images if same scalefactor, offset and datatype
 %--------------------------------------------------------------------------

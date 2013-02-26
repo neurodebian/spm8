@@ -6,9 +6,11 @@ function [xy,label] = spm_eeg_project3D(sens, modality)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Stefan Kiebel, Vladimir Litvak
-% $Id: spm_eeg_project3D.m 3192 2009-06-09 08:29:22Z vladimir $
+% $Id: spm_eeg_project3D.m 4991 2012-10-07 16:27:55Z vladimir $
 
 cfg = [];
+
+cfg.showcallinfo = 'no';
 
 switch modality
     case 'EEG'
@@ -19,6 +21,8 @@ switch modality
     otherwise
         error('Unknown data type');
 end
+
+cfg.overlap = 'keep';
 
 lay = ft_prepare_layout(cfg);
 [sel1, sel2] = spm_match_str(sens.label, lay.label);

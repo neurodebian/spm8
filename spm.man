@@ -91,7 +91,7 @@
 %
 %                           ----------------
 %
-% Please report bugs to the authors at <spm@fil.ion.ucl.ac.uk>
+% Please report bugs to the authors at <fil.spm@ucl.ac.uk>
 % Peculiarities may actually be features, and should be raised on the
 % SPM eMail discussion list, <spm@jiscmail.ac.uk>.
 % ______________________________________________________________________
@@ -134,8 +134,8 @@
 % No formal support or maintenance is provided or implied.
 %
 %__________________________________________________________________________
-% Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
+% Copyright (C) 1991,1994-2013 Wellcome Trust Centre for Neuroimaging
 
 % The FIL Methods Group
-% $Id: spm.man 3028 2009-04-01 12:02:59Z guillaume $
+% $Id: spm.man 5187 2013-01-17 12:10:06Z guillaume $
 

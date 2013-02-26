@@ -125,7 +125,7 @@ function varargout = spm_results_ui(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston & Andrew Holmes
-% $Id: spm_results_ui.m 4661 2012-02-20 17:48:16Z guillaume $
+% $Id: spm_results_ui.m 4977 2012-09-27 18:38:52Z guillaume $
  
  
 %==========================================================================
@@ -237,7 +237,7 @@ function varargout = spm_results_ui(varargin)
 % warning statements from MATLAB.
 %__________________________________________________________________________
  
-SVNid = '$Rev: 4661 $'; 
+SVNid = '$Rev: 4977 $'; 
 
 %-Condition arguments
 %--------------------------------------------------------------------------
@@ -1209,7 +1209,12 @@ if ~isempty(xSPM.thresDesc)
     td = regexp(xSPM.thresDesc,'p\D?(?<u>[\.\d]+) \((?<thresDesc>\S+)\)','names');
     if isempty(td)
         td = regexp(xSPM.thresDesc,'\w=(?<u>[\.\d]+)','names');
-        td.thresDesc = 'none';
+        if isempty(td)
+            warning('This feature is not working with PPMs.');
+            td = struct('u',[],'thresDesc','');
+        else
+            td.thresDesc = 'none';
+        end
     end
     if strcmp(td.thresDesc,'unc.'), td.thresDesc = 'none'; end
     xSPM2.thresDesc = td.thresDesc;

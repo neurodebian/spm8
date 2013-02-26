@@ -25,7 +25,7 @@ function [alpha,exp_r,xp] = spm_BMS(lme, Nsamp, do_plot, sampling, ecp, alpha0)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Klaas Enno Stephan & Will Penny
-% $Id: spm_BMS.m 3187 2009-06-07 18:01:43Z klaas $
+% $Id: spm_BMS.m 4999 2012-10-12 12:44:15Z vladimir $
 
 if nargin < 2 || isempty(Nsamp)
     Nsamp = 1e6;
@@ -169,20 +169,22 @@ if sampling
             alpha_s                = [a(i),alpha_max-a(i)];
             [F_samp(i),F_bound(i)] = spm_BMS_F(alpha_s,lme,alpha0);
         end
-        % graphical display
-        %------------------------------------------------------------------
-        fig2 = figure;
-        axes2 = axes('Parent',fig2,'FontSize',14);
-        plot(a,F_samp,'Parent',axes2,'LineStyle','-','DisplayName','Sampling Approach',...
-            'Color',[0 0 0]);
-        hold on;
-        yy = ylim;
-        plot([alpha(1),alpha(1)],[yy(1),yy(2)],'Parent',axes2,'LineStyle','--',...
-            'DisplayName','Variational Bayes','Color',[0 0 0]);
-        legend2 = legend(axes2,'show');
-        set(legend2,'Position',[0.15 0.8 0.2 0.1],'FontSize',14);
-        xlabel('\alpha_1','FontSize',18);
-        ylabel('F','FontSize',18);
+        if do_plot
+            % graphical display
+            %------------------------------------------------------------------
+            fig2 = figure;
+            axes2 = axes('Parent',fig2,'FontSize',14);
+            plot(a,F_samp,'Parent',axes2,'LineStyle','-','DisplayName','Sampling Approach',...
+                'Color',[0 0 0]);
+            hold on;
+            yy = ylim;
+            plot([alpha(1),alpha(1)],[yy(1),yy(2)],'Parent',axes2,'LineStyle','--',...
+                'DisplayName','Variational Bayes','Color',[0 0 0]);
+            legend2 = legend(axes2,'show');
+            set(legend2,'Position',[0.15 0.8 0.2 0.1],'FontSize',14);
+            xlabel('\alpha_1','FontSize',18);
+            ylabel('F','FontSize',18);
+        end
     else
         fprintf('\n%s\n','Verification of alpha estimates by sampling not available.')
         fprintf('%s\n','This approach is currently only implemented for comparison of 2 models.');

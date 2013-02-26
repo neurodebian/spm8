@@ -24,11 +24,12 @@ function DCM = spm_dcm_erp(DCM)
 %   options.spatial      - 'ERP', 'LFP' or 'IMG'
 %   options.onset        - stimulus onset (ms)
 %   options.dur          - and dispersion (sd)
+%   options.artefacts    - N x 2 [start end] time window in ms 
 %__________________________________________________________________________
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_dcm_erp.m 4567 2011-11-23 12:13:01Z spm $
+% $Id: spm_dcm_erp.m 4914 2012-09-11 16:09:40Z vladimir $
 
 % check options
 %==========================================================================
@@ -47,6 +48,7 @@ try, dur   = DCM.options.dur;       catch, dur       = 16;          end
 try, model = DCM.options.model;     catch, model     = 'NMM';       end
 try, lock  = DCM.options.lock;      catch, lock      = 0;           end
 try, symm  = DCM.options.symmetry;  catch, symm      = 0;           end
+try, artf  = DCM.options.artefacts; catch, artf      = [];          end
 
 if ~strcmp(DCM.options.spatial,'ECD'), symm = 0; end
     
@@ -83,10 +85,17 @@ end
 T0     = speye(Ns) - X0*((X0'*X0)\X0');
 xY.X0  = X0;
 
+% Serial additional error components to suppress artefacts (if present)
+%--------------------------------------------------------------------------
+N   = ones(1, Ns);
+for i = 1:size(artf, 1)
+    N(xY.pst >= artf(i, 1) & xY.pst<= artf(i, 2)) = exp(-2);    
+end
+N = diag(N);
+
 % Serial correlations (precision components) AR model
 %--------------------------------------------------------------------------
-xY.Q   = {spm_Q(3/4,Ns,1)};
-
+xY.Q{1}   = N*spm_Q(3/4,Ns,1)*N;
 
 %-Inputs
 %==========================================================================
@@ -133,7 +142,7 @@ end
 %--------------------------------------------------------------------------
 try
     if length(spm_vec(pE)) == length(spm_vec(M.P))
-        fprintf('Using intial parameters\n')
+        fprintf('Using initial parameters\n')
     end
 end
 
@@ -181,7 +190,7 @@ M.ns  = Ns;
 
 % Spatial modes
 %--------------------------------------------------------------------------
-if Nc < Nm
+if Nc <= Nm
     U     = speye(Nc);
     M.E   = U;
 else

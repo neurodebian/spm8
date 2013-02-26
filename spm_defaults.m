@@ -17,7 +17,7 @@ function spm_defaults
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % 
-% $Id: spm_defaults.m 4396 2011-07-19 09:06:49Z volkmar $
+% $Id: spm_defaults.m 4860 2012-08-24 13:23:55Z volkmar $
 
 %-Prevent users from making direct calls to this function
 %-----------------------------------------------------------------------
@@ -71,7 +71,7 @@ defaults.stats.results.volume.distmin =  8;
 defaults.stats.results.volume.nbmax   =  3;
 defaults.stats.results.svc.distmin    =  4;
 defaults.stats.results.svc.nbmax      = 16;
-defaults.stats.results.mipmat         = fullfile(spm('dir'),'MIP.mat');
+defaults.stats.results.mipmat         = cellstr(fullfile(spm('dir'),'MIP.mat'));
 
 % Mask defaults
 %=======================================================================

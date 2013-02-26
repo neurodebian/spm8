@@ -5,7 +5,7 @@ function headmodel = spm_cfg_eeg_inv_headmodel
 % Copyright (C) 2010 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: spm_cfg_eeg_inv_headmodel.m 4118 2010-11-10 14:48:16Z vladimir $
+% $Id: spm_cfg_eeg_inv_headmodel.m 4997 2012-10-12 11:17:08Z vladimir $
 
 D = cfg_files;
 D.tag = 'D';
@@ -161,7 +161,6 @@ headmodel.modality = {'EEG'};
 
 function  out = specify_headmodel(job)
 
-mesh = spm_eeg_inv_mesh;
 out.D = {};
 
 %- Loop over input datasets
@@ -218,8 +217,8 @@ for i = 1:numel(job.D)
         for j = 1:numel(job.coregistration.coregspecify.fiducial)
             if isfield(job.coregistration.coregspecify.fiducial(j).specification, 'select')
                 lbl = job.coregistration.coregspecify.fiducial(j).specification.select;
-                ind = strmatch(lbl, mesh.fid.fid.label);
-                mrifid.fid.pnt(j, :) = mesh.fid.fid.pnt(ind, :);
+                ind = strmatch(lbl, D.inv{val}.mesh.fid.fid.label);
+                mrifid.fid.pnt(j, :) = D.inv{val}.mesh.fid.fid.pnt(ind, :);
             else
                 mrifid.fid.pnt(j, :) = job.coregistration.coregspecify.fiducial(j).specification.type;
             end

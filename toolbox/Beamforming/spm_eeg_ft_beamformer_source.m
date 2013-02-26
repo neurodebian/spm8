@@ -23,7 +23,7 @@ function Dsource = spm_eeg_ft_beamformer_source(S)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak, Robert Oostenveld
-% $Id: spm_eeg_ft_beamformer_source.m 4238 2011-03-10 19:48:37Z vladimir $
+% $Id: spm_eeg_ft_beamformer_source.m 5140 2012-12-20 15:33:28Z vladimir $
 
 [Finter,Fgraph,CmdLine] = spm('FnUIsetup', 'Beamformer source activity extraction',0);
 
@@ -192,7 +192,9 @@ data.time = data.time(trialind);
 cfg = [];
 cfg.channel = D.chanlabels(setdiff(D.meegchannels(modality), D.badchannels))';
 cfg.covariance = 'yes';
+cfg.covariancewindow = 'all';
 cfg.keeptrials = 'no';
+cfg.trackcallinfo = false;
 timelock1 = ft_timelockanalysis(cfg, data);
 cfg.keeptrials = 'yes';
 timelock2 = ft_timelockanalysis(cfg, data);
@@ -203,7 +205,7 @@ nsources = numel(S.sources.label);
 cfg = [];
 
 if ismember(modality, {'MEG', 'MEGPLANAR'})
-    cfg.reducerank = 2;
+    cfg.lcmv.reducerank = 2;
 end
 
 if ~isfield(S, 'voi') || isequal(S.voi, 'no')
@@ -229,12 +231,17 @@ end
 
 cfg.grad = sens;
 cfg.inwardshift = -30;
+cfg.sourceunits = 'mm';
 cfg.vol = vol;
 cfg.channel = modality;
 cfg.method = 'lcmv';
-cfg.keepfilter = 'yes';
+cfg.lcmv.keepfilter = 'yes';
 cfg.keepleadfield = 'yes';
-cfg.lambda =  S.lambda;
+cfg.lcmv.lambda =  S.lambda;
+cfg.trackcallinfo = false;
+if isfield(cfg.grid, 'mom') && size(cfg.grid.mom, 1)~=3
+    cfg.grid.mom = cfg.grid.mom';
+end
 source1 = ft_sourceanalysis(cfg, timelock1);
 
 if isfield(S, 'makecorrimage') &&  S.makecorrimage
@@ -249,6 +256,8 @@ if isfield(S, 'makecorrimage') &&  S.makecorrimage
     cfg.grid.ygrid = -120:10:100;
     cfg.grid.zgrid = -70:10:110;
     cfg.inwardshift = -10;
+    cfg.sourceunits = 'mm';
+    cfg.trackcallinfo = false;
     
     fsource = ft_sourceanalysis(cfg, timelock1);
     
@@ -269,7 +278,7 @@ if isfield(S, 'makecorrimage') &&  S.makecorrimage
         cfg1.sourceunits   = 'mm';
         cfg1.parameter = 'pow';
         cfg1.downsample = 1;
-        sourceint = ft_sourceinterpolate(cfg1, fsource, sMRI);
+        sourceint = ft_sourceinterpolate(cfg1, fsource, ft_read_mri(sMRI, 'format', 'nifti_spm'));
         %%           
         outvol = spm_vol(sMRI);
         outvol.dt(1) = spm_type('float32');
@@ -288,12 +297,14 @@ end
 
 cfg = [];
 cfg.inwardshift = -30;
+cfg.sourceunits = 'mm';
 cfg.vol = vol;
 cfg.grad = sens;
 cfg.grid = ft_source2grid(source1);
 cfg.channel = modality;
-cfg.lambda =  S.lambda;
+cfg.lcmv.lambda =  S.lambda;
 cfg.rawtrial = 'yes';
+cfg.trackcallinfo = false;
 source2 = ft_sourceanalysis(cfg, timelock2);
 
 crosstalk = [];

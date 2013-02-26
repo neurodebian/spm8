@@ -9,7 +9,7 @@ function [result meegstruct]=checkmeeg(meegstruct, option)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: checkmeeg.m 4437 2011-08-23 13:09:24Z vladimir $
+% $Id: checkmeeg.m 5026 2012-10-31 14:55:47Z vladimir $
 
 if nargin==1
     option = 'basic';
@@ -76,11 +76,11 @@ else
         end
         
         if isa(label, 'char')
-           meegstruct.trials(k).label = label;
+            meegstruct.trials(k).label = deblank(label);
         else
-           meegstruct.trials(k).label = 'Unknown';
-           disp('checkmeeg: some trial labels were not strings, changing back to ''Unknown''');
-        end                        
+            meegstruct.trials(k).label = 'Unknown';
+            disp('checkmeeg: some trial labels were not strings, changing back to ''Unknown''');
+        end
         
         if  length(meegstruct.trials(k).bad)>1 || ~ismember(meegstruct.trials(k).bad, [0, 1])
             disp(['checkmeeg: illegal value for bad flag in trial ' num2str(k) ', setting to zero.']);
@@ -124,7 +124,7 @@ else
     if ~isfield(meegstruct.trials, 'onset')
         [meegstruct.trials.onset] = deal(0);
     else
-        [meegstruct.trials(find(cellfun('isempty', {meegstruct.trials.onset}))).onset] = deal(0);    
+        [meegstruct.trials(find(cellfun('isempty', {meegstruct.trials.onset}))).onset] = deal(0);
     end
     if ~isfield(meegstruct.trials, 'repl')
         [meegstruct.trials.repl] = deal(1);
@@ -152,7 +152,7 @@ else
     
     for i = 1:Nchannels
         meegstruct.channels(i).bad = double(~~meegstruct.channels(i).bad);
-    end            
+    end
     
     if ~isfield(meegstruct.channels, 'type')
         disp('checkmeeg: no channel type, assigning default');
@@ -204,18 +204,27 @@ elseif (Nsamples==0)  % This is to enable creation of empty meeg objects
     meegstruct.data = struct([]);
 else
     if ~isfield(meegstruct.data, 'fnamedat')
-        disp('checkmeeg: data file name missing');
-        return;
-    else
-        fname = meegstruct.data.fnamedat;
-        if ~ispc, fname = strrep(fname,'\',filesep); end
-        [junk, fnamedat, ext] = fileparts(fname);
-        if isempty(ext)
-            meegstruct.data.fnamedat = [fnamedat '.dat'];
+        if ~isa(meegstruct.data, 'file_array')
+            disp('checkmeeg: data file name missing');
+            return;
         else
-            meegstruct.data.fnamedat = [fnamedat ext];
+            disp('checkmeeg: SPM12 format - converting back');
+            sav_sc = meegstruct.data.scl_slope;
+            sav_os = meegstruct.data.offset;
+            meegstruct.data = struct('fnamedat', meegstruct.data.fname, ...
+                'datatype', meegstruct.data.dtype);
         end
     end
+    
+    fname = meegstruct.data.fnamedat;
+    if ~ispc, fname = strrep(fname,'\',filesep); end
+    [junk, fnamedat, ext] = fileparts(fname);
+    if isempty(ext)
+        meegstruct.data.fnamedat = [fnamedat '.dat'];
+    else
+        meegstruct.data.fnamedat = [fnamedat ext];
+    end
+    
     if ~isfield(meegstruct.data, 'datatype')
         disp('checkmeeg: data type missing, assigning default');
         meegstruct.data.datatype = 'float32';
@@ -280,7 +289,7 @@ else
         end
         % and restore original file_array scale, if available (exist) & useful (~=[])
         if exist('sav_sc','var') && ~isempty(sav_sc) && ...
-                   size(meegstruct.data.y, 1) == length(sav_sc)            
+                size(meegstruct.data.y, 1) == length(sav_sc)
             meegstruct.data.y.scl_slope = sav_sc;
         end
         % and restore original file_array offset, if available (exist) & useful (~=0)
@@ -368,13 +377,17 @@ if ~isfield(meegstruct, 'sensors')
     meegstruct.sensors = struct([]);
 else
     if isfield(meegstruct.sensors, 'eeg')
-        if isempty(meegstruct.sensors.eeg) || isempty(meegstruct.sensors.eeg.pnt)
+        if isempty(meegstruct.sensors.eeg)
             meegstruct.sensors = rmfield(meegstruct.sensors, 'eeg');
+        else
+            meegstruct.sensors.eeg = ft_datatype_sens(meegstruct.sensors.eeg);
         end
     end
     if isfield(meegstruct.sensors, 'meg')
-        if isempty(meegstruct.sensors.meg) || isempty(meegstruct.sensors.meg.pnt)
+        if isempty(meegstruct.sensors.meg)
             meegstruct.sensors = rmfield(meegstruct.sensors, 'meg');
+        else
+            meegstruct.sensors.meg = ft_datatype_sens(meegstruct.sensors.meg);
         end
     end
 end
@@ -513,7 +526,7 @@ if strcmp(option, 'sensfid') || strcmp(option, '3d') ||...
     if ~isfield(meegstruct.fiducials, 'pnt') || isempty(meegstruct.fiducials.pnt)
         if ~isempty(eegind)
             % Copy EEG sensors to fiducials.
-            meegstruct.fiducials.pnt = meegstruct.sensors.eeg.pnt;
+            meegstruct.fiducials.pnt = meegstruct.sensors.eeg.elecpos;
         else
             meegstruct.fiducials.pnt = sparse(0, 3);
         end

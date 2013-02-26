@@ -22,7 +22,7 @@ function DCM = spm_dcm_csd(DCM)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
  
 % Karl Friston
-% $Id: spm_dcm_csd.m 4348 2011-06-10 20:50:23Z karl $
+% $Id: spm_dcm_csd.m 5159 2012-12-21 15:43:51Z vladimir $
  
  
 % check options
@@ -202,6 +202,7 @@ Ec  = spm_unvec(spm_vec(DCM.xY.y) - spm_vec(Hc),Hc);     % prediction error
 %--------------------------------------------------------------------------
 M             = DCM.M;    
 M.dipfit.type = 'LFP';
+M.l       = Ns;
  
 qp        = Qp;
 qp.L      = ones(1,Ns);             % set virtual electrode gain to unity

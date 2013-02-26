@@ -35,7 +35,7 @@ function spm_mip(Z,XYZ,M,units)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston et al.
-% $Id: spm_mip.m 4404 2011-07-22 11:36:40Z volkmar $
+% $Id: spm_mip.m 4860 2012-08-24 13:23:55Z volkmar $
 
 %-Get units and grid scaling
 %--------------------------------------------------------------------------
@@ -65,7 +65,7 @@ end
 %-Display format
 %==========================================================================
 % load various grids, DXYZ, CXYZ, scale (see spm_mip_ui and spm_project)
-load(spm_get_defaults('stats.results.mipmat'));
+load(char(spm_get_defaults('stats.results.mipmat')));
 
 %-Single slice case
 %--------------------------------------------------------------------------
