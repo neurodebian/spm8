@@ -1,3 +1,9 @@
+spm8 (8.5236~dfsg.1-1) unreleased; urgency=low
+
+  * New upstream release.
+
+ -- Michael Hanke <mih@debian.org>  Tue, 26 Feb 2013 12:05:40 +0100
+
 spm8 (8.4667~dfsg.1-1) unstable; urgency=low
 
   * New upstream release.
