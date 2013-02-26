@@ -42,26 +42,26 @@ function TabDat = spm_VOI(SPM,xSPM,hReg)
 %
 % If the VOI is defined by a mask this mask must have been defined
 % independently of the SPM (e.g.using a mask based on an orthogonal
-% contrast)
+% contrast).
 %
 % External mask images should be in the same orientation as the SPM
 % (i.e. as the input used in stats estimation). The VOI is defined by
 % voxels with values greater than 0.
 %
-% FDR computations are similarly resticted by the small search volume
+% FDR computations are similarly resticted by the small search volume.
 %
 % See also: spm_list
 %__________________________________________________________________________
-% Copyright (C) 1999-2012 Wellcome Trust Centre for Neuroimaging
+% Copyright (C) 1999-2013 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_VOI.m 4635 2012-02-01 19:09:45Z guillaume $
+% $Id: spm_VOI.m 5191 2013-01-17 18:41:14Z guillaume $
 
 
 %-Parse arguments
 %--------------------------------------------------------------------------
-if nargin < 2,   error('insufficient arguments'), end
-if nargin < 3,   hReg = []; end
+if nargin < 2, error('insufficient arguments'), end
+if nargin < 3, hReg = []; end
 
 Num      = spm_get_defaults('stats.results.svc.nbmax');   % maxima per cluster
 Dis      = spm_get_defaults('stats.results.svc.distmin'); % distance among maxima {mm}

@@ -9,10 +9,10 @@ function spm_update(update)
 % Invoking this function with any input parameter will do the same as
 % above but will also attempt to download and install the updates.
 %__________________________________________________________________________
-% Copyright (C) 2010-2012 Wellcome Trust Centre for Neuroimaging
+% Copyright (C) 2010-2013 Wellcome Trust Centre for Neuroimaging
 
 % Guillaume Flandin
-% $Id: spm_update.m 4666 2012-02-27 17:03:37Z guillaume $
+% $Id: spm_update.m 5235 2013-02-04 15:30:21Z guillaume $
 
 url = 'ftp://ftp.fil.ion.ucl.ac.uk/spm/spm8_updates/';
 
@@ -38,7 +38,7 @@ catch
     error('SPM cannot be found in MATLAB path.');
 end
 if ~strcmp(v,'SPM8'), error('Your SPM version is %s and not SPM8',v); end
-rs = [3042 3164 3408 3684 4010 4290 4667];
+rs = [3042 3164 3408 3684 4010 4290 4667 5236];
 if isnan(r), r = rs(1); end 
 if floor(r) == 8
     try

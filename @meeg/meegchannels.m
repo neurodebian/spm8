@@ -12,7 +12,7 @@ function ind = meegchannels(this, modality)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Stefan Kiebel
-% $Id: meegchannels.m 3412 2009-09-22 16:04:22Z vladimir $
+% $Id: meegchannels.m 5045 2012-11-09 15:53:23Z vladimir $
 
 type = chantype(this);
 
@@ -27,8 +27,12 @@ else
             ind = find(ismember(upper(type), {'LFP'}));
         case 'MEG'
             ind = find(ismember(upper(type), {'MEG', 'MEGMAG', 'MEGGRAD'}));
+        case 'MEGMAG'
+            ind = find(ismember(upper(type), {'MEGMAG'}));
         case 'MEGPLANAR'
             ind = find(ismember(upper(type), {'MEGPLANAR'}));
+        case 'MEGGRAD' 
+            ind = find(ismember(upper(type), {'MEGGRAD'})); 
         case 'MEEG'
             ind = find(ismember(upper(type), {'EEG', 'MEG', 'MEGMAG', 'MEGGRAD', 'MEGPLANAR'}));
         otherwise

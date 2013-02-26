@@ -27,7 +27,7 @@ function spm_dcm_average (P,name)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Will Penny & Klaas Enno Stephan
-% $Id: spm_dcm_average.m 4185 2011-02-01 18:46:18Z guillaume $
+% $Id: spm_dcm_average.m 4859 2012-08-24 10:06:17Z guillaume $
 
 try
     P;
@@ -53,7 +53,14 @@ for model = 1:N
 
     % Only look at those parameters with non-zero prior variance
     %----------------------------------------------------------------------
-    pCdiag = diag(DCM.M.pC);
+    if isstruct(DCM.M.pC)
+        pCdiag = spm_vec(DCM.M.pC);
+        if size(pCdiag,2)>1
+            pCdiag=diag(pCdiag);
+        end
+    else
+       pCdiag = diag(DCM.M.pC);
+    end
     wsel   = find(pCdiag);
 
     if model == 1
@@ -72,6 +79,11 @@ for model = 1:N
     miCp(:,:,model) = inv(full(Cp(wsel,wsel)));
     mEp(:,model)    = full(Ep(wsel));
 
+    if model==1
+        % Get prior precision (assumed same for all models)
+        Lambda0=inv(diag(pCdiag(wsel)));
+    end
+
 end
 
 
@@ -80,15 +92,19 @@ end
 
 % averaged posterior covariance
 %--------------------------------------------------------------------------
-Cp(wsel,wsel) = inv(sum(miCp,3));
+Cp(wsel,wsel) = inv(sum(miCp,3)-(N-1)*Lambda0);
+
+m0=spm_vec(DCM.M.pE);
+m0=m0(wsel);
 
 % averaged posterior mean
 %--------------------------------------------------------------------------
-pE            = DCM.Ep;
+pE            = DCM.M.pE;
 wEp           = 0;
 for model=1:N
     wEp       = wEp + miCp(:,:,model) * mEp(:,model);
 end
+wEp           = wEp - (N-1)*Lambda0*m0;
 Ep(wsel)      = Cp(wsel,wsel) * wEp;
 Ep            = spm_unvec(Ep,pE);
 

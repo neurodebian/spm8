@@ -26,7 +26,7 @@ function res = spm_eeg_specest_ft_mtmconvol(S, data, time)
 % Copyright (C) 2010 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak based on the code contributed by Krish Singh
-% $Id: spm_eeg_specest_ft_mtmconvol.m 3876 2010-05-07 18:51:03Z vladimir $
+% $Id: spm_eeg_specest_ft_mtmconvol.m 4794 2012-07-19 13:56:27Z vladimir $
 
 
 %-This part if for creating a config branch that plugs into spm_cfg_eeg_tf
@@ -158,6 +158,8 @@ cfg.toi=(time(1)+(timeres/2)):timestep:(time(end)-(timeres/2)-1/fsample); % Time
 if ismember(cfg.taper, {'dpss', 'sine'}) && ~(all(cfg.tapsmofrq==cfg.tapsmofrq(1)) && all(cfg.t_ftimwin==cfg.t_ftimwin(1)))
     cfg.output ='pow';
 end
+
+cfg.showcallinfo = 'no';
 
 freq = ft_freqanalysis(cfg, ftraw);
 

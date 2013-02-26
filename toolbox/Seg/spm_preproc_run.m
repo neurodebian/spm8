@@ -21,7 +21,7 @@ function varargout = spm_preproc_run(job,arg)
 % Copyright (C) 2008-2011 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_preproc_run.m 4334 2011-05-31 16:39:53Z john $
+% $Id: spm_preproc_run.m 4677 2012-03-05 15:39:35Z john $
 
 if nargin == 1, arg = 'run'; end
 
@@ -80,6 +80,10 @@ for iter=1:nit,
             % Initial affine registration.
             Affine  = eye(4);
             if ~isempty(job.warp.affreg),
+                if isfield(job.warp,'Affine')
+                    Affine = job.warp.Affine;
+                    fprintf(1,'Using user-defined matrix for initial affine transformation\n');
+                end
                 Affine  = spm_maff8(obj.image(1),job.warp.samp,obj.fudge*8,tpm,Affine,job.warp.affreg); % Close to rigid
                 Affine  = spm_maff8(obj.image(1),job.warp.samp,obj.fudge,  tpm,Affine,job.warp.affreg);
             end;

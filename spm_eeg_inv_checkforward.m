@@ -5,7 +5,7 @@ function spm_eeg_inv_checkforward(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: spm_eeg_inv_checkforward.m 3833 2010-04-22 14:49:48Z vladimir $
+% $Id: spm_eeg_inv_checkforward.m 4790 2012-07-17 16:00:20Z vladimir $
 
 % SPM data structure
 %==========================================================================
@@ -33,6 +33,14 @@ catch
 end
 
 Fgraph  = spm_figure('GetWin','Graphics'); figure(Fgraph); clf
+
+if ismac
+    set(Fgraph,'renderer','zbuffer');
+else
+    set(Fgraph,'renderer','OpenGL');
+end
+
+
 spm('Pointer', 'Watch');drawnow;
 %--------------------------------------------------------------------------
 chanind = strmatch(modality, D.chantype);
@@ -45,39 +53,15 @@ if ischar(vol)
     vol = ft_read_vol(vol);
 end
 
-%--------------------------------------------------------------------------
-cfg = [];
-
-switch modality
-    case 'EEG'
-        cfg.elec = sens;
-    case 'MEG'
-        cfg.grad = sens;
-    otherwise
-        error('Unsupported modality');
-end
-
-cfg.channel           = D.chanlabels(chanind);
-cfg.vol               = vol;
-cfg.inwardshift       = 0;
-cfg.plotgrid          = 'no';    
-cfg.plotheadsurface   = 'no';
-cfg.plotspheres       = 'yes';
-cfg.plotbnd           = 'yes';
-cfg.plotspherecenter  = 'yes'; 
-cfg.plotlines         = 'no'; 
-cfg.surftype          = 'edges';
-cfg.surface_edgecolor = [0 0 0];
-
-cfg.spheremesh        = 162;
-
-ft_headmodelplot(cfg);
-
-hold on
-
 face    = Mcortex.face;
 vert    = Mcortex.vert;
 h_ctx   = patch('vertices',vert,'faces',face,'EdgeColor','b','FaceColor','b');
+
+hold on
+
+ft_plot_vol(vol, 'edgecolor', [0 0 0], 'facealpha', 0);
+
+ft_plot_sens(sens, 'style', '*b');
 
 rotate3d on;
 spm('Pointer', 'Arrow');drawnow;

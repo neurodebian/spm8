@@ -10,7 +10,7 @@ function spm_eeg_ft_beamformer_freq(S)
 % Copyright (C) 2009 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak
-% $Id: spm_eeg_ft_beamformer_freq.m 4561 2011-11-12 16:27:19Z vladimir $
+% $Id: spm_eeg_ft_beamformer_freq.m 5136 2012-12-20 12:58:36Z vladimir $
 
 [Finter,Fgraph] = spm('FnUIsetup','Fieldtrip beamformer for power', 0);
 %%
@@ -147,16 +147,18 @@ else
     S.tapsmofrq  = 0.5*diff(S.freqrange);
 end
 
-cfg = [];
+
 %%
 if ~isfield(S, 'timewindows')
     for i = 1:spm_input('Number of time windows:', '+1', 'r', '1', 1)
         S.timewindows{i} = spm_input('Time ([start end] in sec):', '+1', 'r', '', 2);
     end
 end
-
+cfg = [];
+cfg.channel = [channel; refchan];
 for i = 1:numel(S.timewindows)
-    timelock{i} = ft_selectdata(data, 'channel', [channel; refchan], 'toilim', S.timewindows{i}, 'avgoverrpt', 'no');
+    cfg.latency = S.timewindows{i};
+    timelock{i} = ft_selectdata(cfg, data);
 end
 
 %%
@@ -213,6 +215,11 @@ end
 %%
 cfg = [];
 cfg.method    = 'mtmfft';
+
+if ~license('checkout','signal_toolbox') || isdeployed;
+    cfg.taper = 'sine';
+end
+
 cfg.output    = 'powandcsd';
 cfg.tapsmofrq = S.tapsmofrq;
 cfg.foilim    = [S.centerfreq S.centerfreq];
@@ -252,7 +259,7 @@ if strcmp('EEG', modality)
     cfg.elec = sens;
 else
     cfg.grad = sens;
-    cfg.reducerank            = 2;
+    cfg.dics.reducerank            = 2;
 end
 
 cfg.channel = D.chanlabels(D.meegchannels(modality));
@@ -269,6 +276,7 @@ mnigrid.pos   = [X(:) Y(:) Z(:)];
 cfg.grid.dim = mnigrid.dim;
 cfg.grid.pos = spm_eeg_inv_transform_points(M1*datareg.fromMNI, mnigrid.pos);
 cfg.inwardshift = -10;
+cfg.sourceunits = 'mm';
 
 grid            = ft_prepare_leadfield(cfg);
 
@@ -279,7 +287,7 @@ if strcmp('EEG', modality)
     cfg.elec = D.inv{D.val}.datareg.sensors;
 else
     cfg.grad = D.sensors('MEG');
-    cfg.reducerank = 2;
+    cfg.dics.reducerank = 2;
 end
 
 cfg.channel = D.chanlabels(D.meegchannels(modality));
@@ -288,7 +296,7 @@ if ~isempty(refchan)
     cfg.refchan = refchan;
 end
 
-cfg.keepfilter   = 'yes';
+cfg.dics.keepfilter   = 'yes';
 cfg.frequency    = S.centerfreq;
 cfg.method       = 'dics';
 
@@ -300,11 +308,11 @@ cfg.dics.realfilter = 'yes';
 
 cfg.dics.powmethod  = 'trace';
 
-cfg.projectnoise = 'no';
+cfg.dics.projectnoise = 'no';
 cfg.grid         = grid;
 cfg.vol          = vol;
-cfg.lambda       = S.lambda;
-cfg.keepcsd = 'yes';
+cfg.dics.lambda       = S.lambda;
+cfg.dics.keepcsd = 'yes';
 
 if isfield(S, 'usewholetrial') && S.usewholetrial
     filtsource   = ft_sourceanalysis(cfg, filtfreq);
@@ -320,7 +328,7 @@ if isfield(S, 'geteta') && S.geteta
     save(fullfile(D.path, 'ori.mat'), 'filtsource');
 end
 %
-cfg.keepfilter   = 'no';
+cfg.dics.keepfilter   = 'no';
 cfg.grid.filter  = filtsource.avg.filter; % use the filter computed in the previous step
 
 sMRI = fullfile(spm('dir'), 'canonical', 'single_subj_T1.nii');
@@ -381,7 +389,7 @@ if (isfield(S, 'preview') && S.preview) || ~isempty(refchan) ||...
         cfg1.sourceunits   = 'mm';
         cfg1.parameter = 'pow';
         cfg1.downsample = 1;
-        sourceint = ft_sourceinterpolate(cfg1, csource, sMRI);
+        sourceint = ft_sourceinterpolate(cfg1, csource, ft_read_mri(sMRI, 'format', 'nifti_spm'));
         %%
         
         if (isfield(S, 'preview') && S.preview)
@@ -458,7 +466,7 @@ else
         
         source.pow = (pow*S.contrast(:));
         
-        sourceint = ft_sourceinterpolate(cfg, source, sMRI);
+        sourceint = ft_sourceinterpolate(cfg, source, ft_read_mri(sMRI, 'format', 'nifti_spm'));
         
         outvol.fname= fullfile(D.path, 'images', ['img_' spm_str_manip(D.fname, 'r') '_' clb{cond} '_trial_' num2str(trialind(i)) '.nii']);
         outvol = spm_create_vol(outvol);

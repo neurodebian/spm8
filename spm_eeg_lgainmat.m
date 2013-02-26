@@ -9,7 +9,7 @@ function [L,D] = spm_eeg_lgainmat(D,Is, channels)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_eeg_lgainmat.m 4082 2010-10-07 16:11:48Z guillaume $
+% $Id: spm_eeg_lgainmat.m 4734 2012-05-08 21:48:06Z vladimir $
 
 
 % get gain or lead-field matrix
@@ -105,6 +105,10 @@ catch
 
         end
 
+        % condition the scaling of the lead-field
+        %--------------------------------------------------------------------------
+        G{ind} = spm_cond_units(G{ind}, 1);
+        
         spm_progress_bar('Clear');
 
         spm('Pointer', 'Arrow');drawnow;
@@ -135,7 +139,6 @@ end
 % condition the scaling of the lead-field
 %--------------------------------------------------------------------------
 L   = spm_cond_units(sparse(G(sel2, :)));
-
 
 % retain selected sources if necessary
 %--------------------------------------------------------------------------

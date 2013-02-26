@@ -1,16 +1,16 @@
 #!/usr/bin/env make -f
 # General Makefile to compile SPM C-MEX files
 #
-# Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
+# Copyright (C) 1991-2012 Wellcome Trust Centre for Neuroimaging
 #
-# $Id: Makefile 4357 2011-06-14 13:13:49Z guillaume $
+# $Id: Makefile 4919 2012-09-12 19:04:29Z guillaume $
 #
 ###############################################################################
 #
 # This Makefile has been tested under Linux, Windows and MacOS.
 # 
 # If you have to tweak this Makefile or Makefile.var to compile the SPM 
-# mex-files for your platform, please send the details to <spm@fil.ion.ucl.ac.uk> 
+# mex-files for your platform, please send the details to <fil.spm@ucl.ac.uk> 
 # so they can be included here. 
 #
 # To compile and install SPM, type the following in a Unix console:
@@ -105,7 +105,7 @@ tarball: all toolbox-all toolbox-tarball verb.archive
 
 spm_vol_utils.$(SUF).a: $(OBS)
 	$(DEL) $@
-ifeq (win64,$(PLATFORM))
+ifeq (windows,$(PLATFORM))
 	$(AR)$@ $(OBS)
 else
 	$(AR) $@ $(OBS)

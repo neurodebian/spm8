@@ -15,7 +15,7 @@ function [y,w,s] = spm_csd_mtf(P,M,U)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Karl Friston
-% $Id: spm_csd_mtf.m 4348 2011-06-10 20:50:23Z karl $
+% $Id: spm_csd_mtf.m 5181 2013-01-07 14:56:27Z vladimir $
 
 
 % compute log-spectral density
@@ -89,7 +89,7 @@ for  c = 1:size(X,1)
         
         % extrinsic connections
         %------------------------------------------------------------------
-        for j = 1:length(A)
+        for j = 1:length(Q.A)
             Q.A{j} = Q.A{j} + X(c,i)*P.B{i};
         end
         

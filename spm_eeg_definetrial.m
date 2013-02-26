@@ -24,10 +24,10 @@ function [trl, conditionlabels, S] = spm_eeg_definetrial(S)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Vladimir Litvak, Robert Oostenveld
-% $Id: spm_eeg_definetrial.m 3833 2010-04-22 14:49:48Z vladimir $
+% $Id: spm_eeg_definetrial.m 4756 2012-05-28 15:59:42Z vladimir $
 
 
-SVNrev = '$Rev: 3833 $';
+SVNrev = '$Rev: 4756 $';
 
 %-Startup
 %--------------------------------------------------------------------------
@@ -235,6 +235,7 @@ if S.reviewtrials
 
     if OK
         trl=trl(indx, :);
+        conditionlabels = conditionlabels(indx);
     end
 end
 
@@ -302,7 +303,7 @@ for i=1:Neventtype
             charvalue = {charvalue};
         end
         for j=1:length(charvalue)
-            ninstances = length(strmatch(charvalue{j}, {event(sel(charind)).value}));
+            ninstances = length(strmatch(charvalue{j}, {event(sel(charind)).value}, 'exact'));
             strsettings=[strsettings; {['Type: ' eventtype{i} ' ; Value: ' charvalue{j}...
                 ' ; ' num2str(ninstances) ' instances']}];
             settings=[settings; [eventtype(i), charvalue(j)]];

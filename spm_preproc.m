@@ -17,7 +17,7 @@ function results = spm_preproc(varargin)
 % Copyright (C) 2005-2011 Wellcome Trust Centre for Neuroimaging
 
 % John Ashburner
-% $Id: spm_preproc.m 4178 2011-01-27 15:12:53Z guillaume $
+% $Id: spm_preproc.m 4677 2012-03-05 15:39:35Z john $
 
 opts0     = spm_get_defaults('preproc');
 opts0     = rmfield(opts0,'output');
@@ -138,6 +138,11 @@ if ~isempty(opts.msk)
 end
 
 Affine  = eye(4);
+if isfield(opts,'Affine'), % A request from Rik Henson
+    Affine = opts.Affine; 
+    fprintf(1,'Using user-defined matrix for initial affine transformation\n');
+end;
+
 if ~isempty(opts.regtype)
     Affine  = spm_maff(V,{x0,y0,z0},b0,B(1).mat,Affine,opts.regtype,ff*100);
     Affine  = spm_maff(V,{x0,y0,z0},b0,B(1).mat,Affine,opts.regtype,ff);

@@ -1,9 +1,9 @@
 function [SPM,xSPM] = spm_getSPM(varargin)
 % Compute a specified and thresholded SPM/PPM following estimation
-% FORMAT [SPM,xSPM] = spm_getSPM;
+% FORMAT [SPM,xSPM] = spm_getSPM
 % Query SPM in interactive mode.
 %
-% FORMAT [SPM,xSPM] = spm_getSPM(xSPM);
+% FORMAT [SPM,xSPM] = spm_getSPM(xSPM)
 % Query SPM in batch mode. See below for a description of fields that may
 % be present in xSPM input. Values for missing fields will be queried
 % interactively.
@@ -182,7 +182,7 @@ function [SPM,xSPM] = spm_getSPM(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Andrew Holmes, Karl Friston & Jean-Baptiste Poline
-% $Id: spm_getSPM.m 4642 2012-02-03 12:45:10Z guillaume $
+% $Id: spm_getSPM.m 5222 2013-01-31 15:23:25Z guillaume $
 
 
 %-GUI setup
@@ -517,7 +517,7 @@ if isfield(SPM,'PPM')
                 %-Get Bayesian threshold (Gamma) stored in xCon(Ic).eidf
                 % The default is one conditional s.d. of the contrast
                 %----------------------------------------------------------
-                Gamma         = sqrt(xCon(Ic).c'*SPM.PPM.Cb*xCon(Ic).c);
+                Gamma         = full(sqrt(xCon(Ic).c'*SPM.PPM.Cb*xCon(Ic).c));
                 xCon(Ic).eidf = spm_input(str,'+1','e',sprintf('%0.2f',Gamma));
                 xCon(Ic).STAT = 'P';
             end
@@ -718,7 +718,6 @@ if STAT ~= 'P'
             case 'F'
                 Ps = (1 - spm_Fcdf(Zum,df)).^n;
         end
-        Ps = sort(Ps);
     end
     
     %-Peak FDR

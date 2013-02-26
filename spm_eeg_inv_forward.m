@@ -13,7 +13,7 @@ function D = spm_eeg_inv_forward(varargin)
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Jeremie Mattout & Christophe Phillips
-% $Id: spm_eeg_inv_forward.m 3965 2010-07-01 17:16:17Z vladimir $
+% $Id: spm_eeg_inv_forward.m 5138 2012-12-20 13:05:52Z vladimir $
 
 % initialise
 %--------------------------------------------------------------------------
@@ -36,6 +36,8 @@ for i = 1:nvol
         case '3-Shell Sphere (experimental)'
             cfg                        = [];
             cfg.feedback               = 'yes';
+            cfg.showcallinfo           = 'no';
+            cfg.sourceunits            = 'mm';
             cfg.headshape(1) = export(gifti(mesh.tess_scalp),  'ft');
             cfg.headshape(2) = export(gifti(mesh.tess_oskull), 'ft');
             cfg.headshape(3) = export(gifti(mesh.tess_iskull), 'ft');
@@ -48,8 +50,10 @@ for i = 1:nvol
             % create a triangulation for only the support points
             cfg.headshape(4).pnt = pnt(sel, :);
             cfg.headshape(4).tri = convhulln(pnt(sel, :));
-
-            vol  = ft_prepare_concentricspheres(cfg);
+            
+            cfg.method = 'concentricspheres';
+            
+            vol  = ft_prepare_headmodel(cfg);
             vert = spm_eeg_inv_mesh_spherify(mesh.tess_ctx.vert, mesh.tess_ctx.face, 'shift', 'no');
             mesh.tess_ctx.vert = vol.r(1)*vert + repmat(vol.o, size(vert, 1), 1);
             modality = 'EEG';
@@ -74,7 +78,9 @@ for i = 1:nvol
                 % create the BEM system matrix
                 cfg = [];
                 cfg.method = 'bemcp';
-                vol = ft_prepare_bemmodel(cfg, vol);
+                cfg.showcallinfo = 'no';
+                cfg.sourceunits  = 'mm';
+                vol = ft_prepare_headmodel(cfg, vol);
 
                 spm_progress_bar('Set', 1); drawnow;
 
@@ -99,29 +105,36 @@ for i = 1:nvol
 
             cfg = [];
             cfg.method = 'openmeeg';
-            vol = ft_prepare_bemmodel(cfg, vol);
+            cfg.showcallinfo = 'no';
+            cfg.sourceunits  = 'mm';
+            vol = ft_prepare_headmodel(cfg, vol);
             modality = 'EEG';
         case 'Single Sphere'
             cfg                        = [];
             cfg.feedback               = 'yes';
+            cfg.showcallinfo           = 'no';
             cfg.grad                   = D.inv{val}.datareg(i).sensors;
-            cfg.headshape              = mesh.tess_iskull.vert;
-            cfg.singlesphere = 'yes';
-            vol  = ft_prepare_localspheres(cfg);
-            modality = 'MEG';
+            cfg.headshape              = export(gifti(mesh.tess_scalp), 'ft');
+            cfg.method                 = 'singlesphere';
+            cfg.sourceunits            = 'mm';
+            vol                        = ft_prepare_headmodel(cfg);
+            modality                   = 'MEG';
         case 'MEG Local Spheres'
             cfg                        = [];
             cfg.feedback               = 'yes';
+            cfg.showcallinfo           = 'no';
             cfg.grad                   = D.inv{val}.datareg(i).sensors;
-            cfg.headshape              = mesh.tess_scalp.vert;
+            cfg.headshape              = export(gifti(mesh.tess_scalp), 'ft');
             cfg.radius                 = 85;
             cfg.maxradius              = 200;
-            vol  = ft_prepare_localspheres(cfg);
+            cfg.method                 = 'localspheres';
+            cfg.sourceunits            = 'mm';
+            vol  = ft_prepare_headmodel(cfg);
             modality = 'MEG';
         case  'Single Shell'
             vol = [];
             vol.bnd = export(gifti(mesh.tess_iskull), 'ft');
-            vol.type = 'nolte';
+            vol.type = 'singleshell';
             vol = ft_convert_units(vol, 'mm');
             modality = 'MEG';
         otherwise

@@ -156,7 +156,7 @@
 % Copyright (C) 2008 Wellcome Trust Centre for Neuroimaging
 
 % Will Penny, Nelson Trujillo-Barreto and Lee Harrison
-% $Id: spm_spm_vb.m 4637 2012-02-02 13:15:45Z guillaume $
+% $Id: spm_spm_vb.m 4977 2012-09-27 18:38:52Z guillaume $
 
 
 %-Get SPM.mat if necessary
@@ -1089,6 +1089,9 @@ SPM.PPM.xCon   = SPM.xCon;
 for i=1:length(SPM.PPM.xCon),
     SPM.PPM.xCon(i).PSTAT='T';
 end
+
+% Add pointer to RPV image file so that spm_list works
+SPM.xVol.VRpv=[];
 
 %-Save analysis parameters in SPM.mat file
 %-----------------------------------------------------------------------
