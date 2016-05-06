@@ -13,6 +13,12 @@
 # mex-files for your platform, please send the details to <spm@fil.ion.ucl.ac.uk> 
 # so they can be included here. 
 #
+# To compile with octave
+# >   export SUF=mex ; make
+#     
+# To compile with MATLAB 
+# >   export SUF= ; make
+#
 # To compile and install SPM, type the following in a Unix console:
 # >  make && make install
 #
